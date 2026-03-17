@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import { ArrowLeft } from 'lucide-react'
@@ -16,8 +15,8 @@ export default function NewUserPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    supabase.from('shops').select('id, name').then(({ data }) => {
-      if (data) setShops(data)
+    fetch('/api/admin/shops').then(r => r.json()).then(json => {
+      if (json.success) setShops(json.data)
     })
   }, [])
 
