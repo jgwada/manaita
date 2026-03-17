@@ -45,8 +45,10 @@ ${shopContext(shopProfile)}${urlSection}
           await callClaudeWithWebSearchStream(prompt, (text) => {
             controller.enqueue(encoder.encode(text))
           })
-        } catch {
-          controller.enqueue(encoder.encode('ERROR:リサーチに失敗しました。もう一度お試しください。'))
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          console.error('advisor-research stream error:', msg)
+          controller.enqueue(encoder.encode(`ERROR:${msg}`))
         } finally {
           controller.close()
         }

@@ -97,8 +97,9 @@ export async function callClaudeWithWebSearchStream(
       }
     }
   } catch (error) {
-    console.error('Claude WebSearch Stream error:', error)
-    throw new Error('リサーチに失敗しました。もう一度お試しください。')
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Claude WebSearch Stream error:', msg)
+    throw new Error(msg)
   }
 }
 
