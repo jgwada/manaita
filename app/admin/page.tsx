@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
@@ -23,8 +22,9 @@ export default function AdminPage() {
   }, [user, router])
 
   const fetchShops = async () => {
-    const { data } = await supabase.from('shops').select('id, name, area, industry').order('created_at', { ascending: false })
-    if (data) setShops(data)
+    const res = await fetch('/api/admin/shops')
+    const json = await res.json()
+    if (json.success) setShops(json.data)
     setLoading(false)
   }
 
