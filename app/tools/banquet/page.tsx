@@ -197,13 +197,23 @@ export default function BanquetGenPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
-    if (f) setFile(f)
+    if (!f) return
+    if (f.size > 4 * 1024 * 1024) {
+      setError('ファイルサイズが大きすぎます。4MB以下のPDFをご利用ください。\n※大きいPDFはページ数を減らすか、圧縮してからお試しください。')
+      return
+    }
+    setFile(f)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const f = e.dataTransfer.files?.[0]
-    if (f) setFile(f)
+    if (!f) return
+    if (f.size > 4 * 1024 * 1024) {
+      setError('ファイルサイズが大きすぎます。4MB以下のPDFをご利用ください。\n※大きいPDFはページ数を減らすか、圧縮してからお試しください。')
+      return
+    }
+    setFile(f)
   }
 
   const canGenerate = () => {
