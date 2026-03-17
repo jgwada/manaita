@@ -6,6 +6,7 @@ export interface ShopProfile {
   priceRange: string
   seats: number
   googleReviewUrl: string
+  placeId?: string
   lineOfficialUrl?: string
   createdAt: string
 }

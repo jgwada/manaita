@@ -18,6 +18,7 @@ export default function SetupPage() {
     priceRange: '',
     seats: '',
     googleReviewUrl: '',
+    placeId: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,6 +32,7 @@ export default function SetupPage() {
         priceRange: shopProfile.priceRange,
         seats: String(shopProfile.seats || ''),
         googleReviewUrl: shopProfile.googleReviewUrl || '',
+        placeId: shopProfile.placeId || '',
       })
     }
   }, [shopProfile])
@@ -52,6 +54,7 @@ export default function SetupPage() {
           priceRange: form.priceRange,
           seats: form.seats ? parseInt(form.seats) : null,
           googleReviewUrl: form.googleReviewUrl,
+          placeId: form.placeId,
         }),
       })
       const data = await res.json()
@@ -82,6 +85,7 @@ export default function SetupPage() {
     { key: 'priceRange', label: '客単価', placeholder: '例：2000〜3000円', required: false },
     { key: 'seats', label: '席数', placeholder: '例：30', required: false },
     { key: 'googleReviewUrl', label: 'Google口コミURL', placeholder: 'https://...', required: false },
+    { key: 'placeId', label: 'Google Place ID', placeholder: 'ChIJ...（口コミ取得に必要）', required: false },
   ]
 
   return (

@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(req: Request) {
   try {
-    const { name, area, industry, priceRange, seats, googleReviewUrl } = await req.json()
+    const { name, area, industry, priceRange, seats, googleReviewUrl, placeId } = await req.json()
 
     const { data, error } = await supabaseAdmin.from('shops').insert({
       name,
@@ -12,6 +12,7 @@ export async function POST(req: Request) {
       price_range: priceRange || null,
       seats: seats ? parseInt(seats) : null,
       google_review_url: googleReviewUrl || null,
+      place_id: placeId || null,
     }).select().single()
 
     if (error) throw error

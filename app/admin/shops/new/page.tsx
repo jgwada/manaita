@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react'
 export default function NewShopPage() {
   const router = useRouter()
   const [form, setForm] = useState({
-    name: '', area: '', industry: '', priceRange: '', seats: '', googleReviewUrl: ''
+    name: '', area: '', industry: '', priceRange: '', seats: '', googleReviewUrl: '', placeId: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -43,6 +43,7 @@ export default function NewShopPage() {
     { key: 'priceRange', label: '客単価', placeholder: '例：2000〜3000円', required: false },
     { key: 'seats', label: '席数', placeholder: '例：30', required: false },
     { key: 'googleReviewUrl', label: 'Google口コミURL', placeholder: 'https://...', required: false },
+    { key: 'placeId', label: 'Google Place ID', placeholder: 'ChIJ...', required: false },
   ]
 
   return (
