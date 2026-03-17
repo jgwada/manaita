@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
@@ -23,20 +23,20 @@ const phase1Tools = [
 
 const phase2Tools = [
   { icon: FileText, name: 'メニュー表・POP', description: '料理のキャッチコピーと説明文を自動生成', href: '/tools/menu' },
-  { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report' },
   { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual' },
-  { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc' },
-  { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/cost' },
-  { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl' },
-  { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar' },
-  { icon: UserCheck, name: '常連客管理', description: '来店頻度を記録・長期来店なしの顧客をアラート', href: '/tools/customers' },
+  { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', disabled: true },
+  { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', disabled: true },
+  { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/cost', disabled: true },
+  { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', disabled: true },
+  { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar', disabled: true },
+  { icon: UserCheck, name: '常連客管理', description: '来店頻度を記録・長期来店なしの顧客をアラート', href: '/tools/customers', disabled: true },
 ]
 
 const phase3Tools = [
   { icon: Search, name: '競合リサーチ', description: '業態・地域の競合傾向と差別化ポイントをAIが分析', href: '/tools/research' },
-  { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price' },
   { icon: MessageSquare, name: '集客戦略アドバイザー', description: '宴会・集客・SNS戦略をAIとチャットで相談', href: '/tools/advisor' },
   { icon: MessageCircle, name: 'なんでも経営相談', description: '経営の悩みをなんでも気軽に相談できるAI', href: '/tools/chat' },
+  { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price', disabled: true },
 ]
 
 export default function HomePage() {
@@ -77,7 +77,9 @@ export default function HomePage() {
   )
 }
 
-function Section({ title, tools }: { title: string; tools: typeof phase1Tools }) {
+type Tool = { icon: ComponentType<{ size?: number; className?: string }>; name: string; description: string; href: string; disabled?: boolean }
+
+function Section({ title, tools }: { title: string; tools: Tool[] }) {
   return (
     <div className="mb-8">
       <h2 className="text-xs font-bold text-[#9A8880] uppercase tracking-widest mb-3">{title}</h2>
