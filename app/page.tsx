@@ -1,65 +1,91 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAppStore } from '@/store'
+import AuthGuard from '@/components/layout/AuthGuard'
+import Header from '@/components/layout/Header'
+import ToolCard from '@/components/ui/ToolCard'
+import {
+  Instagram, Star, Users, Wine, BarChart2,
+  BookOpen, TrendingUp, DollarSign, Calculator,
+  Calendar, UserCheck, Search, Tag,
+  MessageSquare, MessageCircle, FileText
+} from 'lucide-react'
+
+const phase1Tools = [
+  { icon: Instagram, name: 'SNS投稿文', description: 'Instagram・X・Googleビジネス用の投稿文を10秒で生成', href: '/tools/sns' },
+  { icon: Star, name: 'Google口コミ返信', description: '高評価・低評価どちらの口コミにも最適な返信文を生成', href: '/tools/review' },
+  { icon: Users, name: '求人票・募集文', description: 'アルバイト・社員・シフト募集の文章を自動作成', href: '/tools/recruit' },
+  { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet' },
+  { icon: Star, name: '満足度フィルタリング', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard' },
+]
+
+const phase2Tools = [
+  { icon: FileText, name: 'メニュー表・POP', description: '料理のキャッチコピーと説明文を自動生成', href: '/tools/menu' },
+  { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report' },
+  { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual' },
+  { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc' },
+  { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/cost' },
+  { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl' },
+  { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar' },
+  { icon: UserCheck, name: '常連客管理', description: '来店頻度を記録・長期来店なしの顧客をアラート', href: '/tools/customers' },
+]
+
+const phase3Tools = [
+  { icon: Search, name: '競合リサーチ', description: '業態・地域の競合傾向と差別化ポイントをAIが分析', href: '/tools/research' },
+  { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price' },
+  { icon: MessageSquare, name: '集客戦略アドバイザー', description: '宴会・集客・SNS戦略をAIとチャットで相談', href: '/tools/advisor' },
+  { icon: MessageCircle, name: 'なんでも経営相談', description: '経営の悩みをなんでも気軽に相談できるAI', href: '/tools/chat' },
+]
+
+export default function HomePage() {
+  const router = useRouter()
+  const { shopProfile, user } = useAppStore()
+
+  useEffect(() => {
+    if (user && user.role === 'shop' && shopProfile && !shopProfile.name) {
+      router.push('/setup')
+    }
+  }, [user, shopProfile, router])
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <AuthGuard>
+      <div className="min-h-screen bg-[#FFF9F5]">
+        <Header />
+        <div className="max-w-2xl mx-auto px-4 py-6">
+
+          {shopProfile?.name && (
+            <div className="mb-6 bg-white border border-[#EDE5DF] rounded-xl px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-[#9A8880]">現在の店舗</p>
+                <p className="font-bold text-[#111008]">{shopProfile.name}</p>
+                <p className="text-xs text-[#9A8880]">{shopProfile.area} · {shopProfile.industry}</p>
+              </div>
+              <button onClick={() => router.push('/setup')} className="text-xs text-[#E8320A] hover:underline">
+                編集
+              </button>
+            </div>
+          )}
+
+          <Section title="Phase 1 · 営業で今すぐ使える" tools={phase1Tools} />
+          <Section title="Phase 2 · 毎日使う経営ツール" tools={phase2Tools} />
+          <Section title="Phase 3 · 差別化・戦略ツール" tools={phase3Tools} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+    </AuthGuard>
+  )
+}
+
+function Section({ title, tools }: { title: string; tools: typeof phase1Tools }) {
+  return (
+    <div className="mb-8">
+      <h2 className="text-xs font-bold text-[#9A8880] uppercase tracking-widest mb-3">{title}</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {tools.map((tool) => (
+          <ToolCard key={tool.href} {...tool} />
+        ))}
+      </div>
     </div>
-  );
+  )
 }
