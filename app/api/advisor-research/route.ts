@@ -1,3 +1,5 @@
+export const maxDuration = 60
+
 import { NextResponse } from 'next/server'
 import { callClaudeWithWebSearchStream } from '@/lib/claude'
 import { shopContext } from '@/lib/prompts/helpers'

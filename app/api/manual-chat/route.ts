@@ -1,3 +1,5 @@
+export const maxDuration = 60
+
 import { callClaudeChatStream } from '@/lib/claude'
 import { ShopProfile } from '@/types'
 import { shopContext } from '@/lib/prompts/helpers'

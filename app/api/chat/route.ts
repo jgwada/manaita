@@ -1,3 +1,5 @@
+export const maxDuration = 60
+
 import { NextResponse } from 'next/server'
 import { callClaudeChatStream } from '@/lib/claude'
 import { buildChatSystemPrompt } from '@/lib/prompts/chat'

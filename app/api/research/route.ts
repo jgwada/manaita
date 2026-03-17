@@ -1,3 +1,5 @@
+export const maxDuration = 60
+
 import { NextResponse } from 'next/server'
 import { callClaudeWithContentStream } from '@/lib/claude'
 import { buildResearchPrompt } from '@/lib/prompts/research'
