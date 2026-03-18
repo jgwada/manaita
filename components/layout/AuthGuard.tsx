@@ -27,16 +27,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       const data = await res.json()
       if (data.success && data.user) {
+        const role = data.user.role
+
         setUser({
           id: data.user.id,
           email: data.user.email,
-          role: data.user.role,
+          role,
           shopId: data.user.shop_id,
           isActive: data.user.is_active,
           createdAt: data.user.created_at,
         })
 
-        if (data.shop) {
+        // adminが店舗に入っている場合（shopProfileが既にセット済み）は上書きしない
+        const currentShopProfile = useAppStore.getState().shopProfile
+        const isAdminViewingShop = role === 'admin' && currentShopProfile !== null
+
+        if (!isAdminViewingShop && data.shop) {
           setShopProfile({
             id: data.shop.id,
             name: data.shop.name,
