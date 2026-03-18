@@ -4,8 +4,9 @@ import { NextResponse } from 'next/server'
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
-async function extractPlaceId(inputUrl: string): Promise<string | null> {
+async function extractPlaceId(inputUrl: string): Promise<{ placeId: string | null; debugUrl: string }> {
   let url = inputUrl.trim()
+  let debugUrl = url
 
   // 短縮URL・共有URLはリダイレクトを追う
   if (
@@ -17,8 +18,9 @@ async function extractPlaceId(inputUrl: string): Promise<string | null> {
     try {
       const res = await fetch(url, { redirect: 'follow' })
       url = res.url
+      debugUrl = url
     } catch {
-      return null
+      return { placeId: null, debugUrl }
     }
   }
 
@@ -26,18 +28,18 @@ async function extractPlaceId(inputUrl: string): Promise<string | null> {
   try {
     const parsed = new URL(url)
     const placeId = parsed.searchParams.get('place_id')
-    if (placeId) return placeId
+    if (placeId) return { placeId, debugUrl }
   } catch { /* invalid URL */ }
 
   // data=...!1sChIJ... または data=...!4sChIJ... パターン
   const dataMatch = url.match(/[!&](?:1s|4s)(ChIJ[a-zA-Z0-9_-]+)/)
-  if (dataMatch) return dataMatch[1]
+  if (dataMatch) return { placeId: dataMatch[1], debugUrl }
 
   // URLのどこかに ChIJ... が含まれる場合
   const chijMatch = url.match(/ChIJ[a-zA-Z0-9_-]{10,}/)
-  if (chijMatch) return chijMatch[0]
+  if (chijMatch) return { placeId: chijMatch[0], debugUrl }
 
-  return null
+  return { placeId: null, debugUrl }
 }
 
 async function getPlaceDetails(placeId: string): Promise<{ name: string; address: string } | null> {
@@ -70,11 +72,11 @@ export async function POST(req: Request) {
     let placeId = body.placeId ?? ''
 
     if (body.mapsUrl) {
-      const extracted = await extractPlaceId(body.mapsUrl)
+      const { placeId: extracted, debugUrl } = await extractPlaceId(body.mapsUrl)
       if (!extracted) {
         return NextResponse.json({
           success: false,
-          error: 'URLからPlace IDを取得できませんでした。GoogleマップまたはGoogleビジネスプロフィールの共有URLを確認してください。',
+          error: `[DEBUG] 取得失敗。リダイレクト後URL=${debugUrl}`,
         })
       }
       placeId = extracted
