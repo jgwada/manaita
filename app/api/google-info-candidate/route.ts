@@ -26,30 +26,33 @@ export async function POST(req: Request) {
 
     const e164 = toE164(phone.trim())
 
-    const url = new URL('https://maps.googleapis.com/maps/api/place/findplacefromtext/json')
-    url.searchParams.set('input', e164)
-    url.searchParams.set('inputtype', 'phonenumber')
-    url.searchParams.set('fields', 'place_id,name,formatted_address')
-    url.searchParams.set('language', 'ja')
-    url.searchParams.set('key', PLACES_API_KEY)
+    // 新しいPlaces API (v1) を使用
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': PLACES_API_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress',
+      },
+      body: JSON.stringify({ textQuery: e164, languageCode: 'ja' }),
+    })
 
-    const res = await fetch(url.toString())
     const data = await res.json()
 
-    if (data.status !== 'OK' || !data.candidates?.length) {
+    if (!data.places?.length) {
       return NextResponse.json({
         success: false,
-        error: `[DEBUG] status=${data.status} e164=${e164} error_message=${data.error_message ?? 'なし'}`,
+        error: '該当する店舗が見つかりませんでした。Googleビジネスプロフィールに登録された電話番号を確認してください。',
       })
     }
 
-    const place = data.candidates[0]
+    const place = data.places[0]
     return NextResponse.json({
       success: true,
       candidate: {
-        shopName: place.name,
-        address: place.formatted_address,
-        placeId: place.place_id,
+        shopName: place.displayName?.text ?? '',
+        address: place.formattedAddress ?? '',
+        placeId: place.id,
       }
     })
   } catch (error) {
