@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     if (data.status !== 'OK' || !data.candidates?.length) {
       return NextResponse.json({
         success: false,
-        error: '該当する店舗が見つかりませんでした。Googleビジネスプロフィールに登録された電話番号を確認してください。',
+        error: `[DEBUG] status=${data.status} e164=${e164} error_message=${data.error_message ?? 'なし'}`,
       })
     }
 
