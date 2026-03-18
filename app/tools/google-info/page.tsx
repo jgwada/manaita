@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
@@ -67,12 +67,32 @@ export default function GoogleInfoPage() {
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const retryBodyRef = useRef<object | null>(null)
+  const retryCountRef = useRef(0)
+
+  useEffect(() => {
+    if (retryCountdown === null) return
+    if (retryCountdown <= 0) {
+      setRetryCountdown(null)
+      if (retryBodyRef.current) {
+        setPhase('generating')
+        generate(retryBodyRef.current as Parameters<typeof generate>[0])
+      }
+      return
+    }
+    const t = setTimeout(() => setRetryCountdown(v => (v ?? 1) - 1), 1000)
+    return () => clearTimeout(t)
+  }, [retryCountdown])
 
   const reset = () => {
     setPhase('input')
     setCandidate(null)
     setResult(null)
     setError('')
+    setRetryCountdown(null)
+    retryBodyRef.current = null
+    retryCountRef.current = 0
   }
 
   // 食べログURL → 一発生成
@@ -137,8 +157,16 @@ export default function GoogleInfoPage() {
         raw += decoder.decode(value)
       }
       if (raw.startsWith('ERROR:RATE_LIMIT')) {
-        setError('APIのレート制限に達しました。1分ほど待ってから再試行してください。')
-        setPhase('input')
+        if (retryCountRef.current < 2) {
+          retryCountRef.current += 1
+          retryBodyRef.current = body
+          setPhase('input')
+          setRetryCountdown(60)
+        } else {
+          setError('レート制限が続いています。しばらく時間をおいてから再試行してください。')
+          setPhase('input')
+          retryCountRef.current = 0
+        }
       } else if (raw.startsWith('ERROR:')) {
         setError(raw.replace('ERROR:', '').trim())
         setPhase('input')
@@ -166,6 +194,11 @@ export default function GoogleInfoPage() {
           {/* ── 入力フェーズ ── */}
           {phase === 'input' && (
             <>
+              {retryCountdown !== null && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm text-amber-700">
+                  ⏳ レート制限のため、{retryCountdown}秒後に自動で再試行します...
+                </div>
+              )}
               {error && (
                 <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4">
                   {error}
