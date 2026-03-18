@@ -240,8 +240,8 @@ export default function GoogleInfoPage() {
                   type="text"
                   value={freeWord}
                   onChange={e => setFreeWord(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleFreeWordSearch()}
-                  placeholder="例：焼鳥 鳥よし 草津"
+                  onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleFreeWordSearch() } }}
+                  placeholder="例：焼鳥 鳥よし 草津（Shift+Enterで検索）"
                   className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
                 />
                 <button

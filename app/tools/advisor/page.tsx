@@ -158,7 +158,7 @@ export default function AdvisorPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSend()
+    if (e.shiftKey && e.key === 'Enter') { e.preventDefault(); handleSend() }
   }
 
   return (
@@ -234,7 +234,7 @@ export default function AdvisorPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="CEOとして相談内容を入力...（⌘+Enter で送信）"
+              placeholder="CEOとして相談内容を入力...（Shift+Enter で送信）"
               rows={2}
               className="flex-1 resize-none text-sm text-[#111008] placeholder-[#9A8880] focus:outline-none"
             />

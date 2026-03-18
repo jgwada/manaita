@@ -166,7 +166,7 @@ export default function ChatPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSend()
+    if (e.shiftKey && e.key === 'Enter') { e.preventDefault(); handleSend() }
   }
 
   const showWelcome = turns.length === 0 && !loading
@@ -257,7 +257,7 @@ export default function ChatPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="経営の悩みを何でも相談してください...（⌘+Enter で送信）"
+              placeholder="経営の悩みを何でも相談してください...（Shift+Enter で送信）"
               rows={2}
               className="flex-1 resize-none text-sm text-[#111008] placeholder-[#9A8880] focus:outline-none"
             />

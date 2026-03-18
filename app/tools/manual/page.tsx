@@ -406,7 +406,7 @@ export default function ManualPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault()
       sendMessage()
     }
@@ -518,7 +518,7 @@ export default function ManualPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="メッセージを入力…（⌘+Enterで送信）"
+              placeholder="メッセージを入力…（Shift+Enterで送信）"
               rows={1}
               disabled={isLoading}
               className="flex-1 border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none disabled:opacity-50"
@@ -535,7 +535,7 @@ export default function ManualPage() {
             </button>
           </div>
           <p className="text-[10px] text-[#9A8880] mt-1 text-center">
-            ⌘+Enter で送信　｜　「もう作って」と言うとマニュアルを生成します
+            Shift+Enter で送信　｜　「もう作って」と言うとマニュアルを生成します
           </p>
         </div>
       </div>
