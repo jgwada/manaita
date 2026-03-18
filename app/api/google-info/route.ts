@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
-/** URLをリダイレクト追跡して最終URLを返す */
 async function followRedirect(url: string): Promise<string> {
   try {
     const res = await fetch(url, { redirect: 'follow' })
@@ -14,31 +13,29 @@ async function followRedirect(url: string): Promise<string> {
   }
 }
 
-/** Google Maps URL から Place ID (ChIJ...) を直接抽出 */
-function extractPlaceIdFromUrl(url: string): string | null {
-  // place_id= クエリパラメータ
+/** Google Maps URL から店名と座標を抽出 */
+function extractNameAndCoords(url: string): { shopName: string; lat: number; lng: number } | null {
   try {
-    const placeId = new URL(url).searchParams.get('place_id')
-    if (placeId) return placeId
-  } catch { /* ignore */ }
+    const nameMatch = url.match(/\/maps\/place\/([^/@]+)/)
+    if (!nameMatch) return null
+    const shopName = decodeURIComponent(nameMatch[1]).replace(/\+/g, ' ')
 
-  // data= 内の !1s / !4s に続く ChIJ...
-  const dataMatch = url.match(/[!&](?:1s|4s)(ChIJ[a-zA-Z0-9_-]+)/)
-  if (dataMatch) return dataMatch[1]
+    const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+    if (!coordMatch) return null
 
-  // URL中に ChIJ... が存在する場合
-  const chijMatch = url.match(/ChIJ[a-zA-Z0-9_-]{10,}/)
-  if (chijMatch) return chijMatch[0]
-
-  return null
+    return {
+      shopName,
+      lat: parseFloat(coordMatch[1]),
+      lng: parseFloat(coordMatch[2]),
+    }
+  } catch {
+    return null
+  }
 }
 
-/** google.com/search の q パラメータから店名を取り出してPlaces APIで検索 */
-async function searchByShopNameFromSearchUrl(searchUrl: string): Promise<string | null> {
+/** 座標＋店名でPlaces API検索（半径200m以内に絞り込み） */
+async function searchByNameAndLocation(shopName: string, lat: number, lng: number): Promise<string | null> {
   try {
-    const q = new URL(searchUrl).searchParams.get('q')
-    if (!q) return null
-
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -46,7 +43,16 @@ async function searchByShopNameFromSearchUrl(searchUrl: string): Promise<string 
         'X-Goog-Api-Key': PLACES_API_KEY!,
         'X-Goog-FieldMask': 'places.id',
       },
-      body: JSON.stringify({ textQuery: q, languageCode: 'ja', regionCode: 'JP' }),
+      body: JSON.stringify({
+        textQuery: shopName,
+        languageCode: 'ja',
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: 200.0,
+          },
+        },
+      }),
     })
     const data = await res.json()
     return data.places?.[0]?.id ?? null
@@ -97,18 +103,16 @@ export async function POST(req: Request) {
         url = await followRedirect(url)
       }
 
-      // Google Maps URL から直接 Place ID を抽出
-      placeId = extractPlaceIdFromUrl(url) ?? ''
-
-      // ビジネスプロフィールの共有URL（google.com/search に飛ぶ場合）は店名で検索
-      if (!placeId && url.includes('google.com/search')) {
-        placeId = (await searchByShopNameFromSearchUrl(url)) ?? ''
+      // 店名＋座標を抽出してPlaces API検索
+      const extracted = extractNameAndCoords(url)
+      if (extracted) {
+        placeId = (await searchByNameAndLocation(extracted.shopName, extracted.lat, extracted.lng)) ?? ''
       }
 
       if (!placeId) {
         return NextResponse.json({
           success: false,
-          error: `[DEBUG] リダイレクト後URL=${url}`,
+          error: 'URLからお店の情報を取得できませんでした。GoogleマップアプリのURLをご確認ください。',
         })
       }
     }
