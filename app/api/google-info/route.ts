@@ -7,8 +7,13 @@ const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 async function extractPlaceId(inputUrl: string): Promise<string | null> {
   let url = inputUrl.trim()
 
-  // 短縮URL（maps.app.goo.gl）はリダイレクトを追う
-  if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
+  // 短縮URL・共有URLはリダイレクトを追う
+  if (
+    url.includes('maps.app.goo.gl') ||
+    url.includes('goo.gl/maps') ||
+    url.includes('share.google') ||
+    url.includes('g.co/')
+  ) {
     try {
       const res = await fetch(url, { redirect: 'follow' })
       url = res.url
