@@ -7,42 +7,39 @@ export async function POST(req: Request) {
   try {
     const body = await req.json() as { tabelogUrl?: string; shopName?: string; area?: string }
 
-    const prompt = body.tabelogUrl
-      ? `
-あなたは飲食店のGoogleビジネス情報を調査するアシスタントです。
+    const shopName = body.tabelogUrl
+      ? `食べログURL（${body.tabelogUrl}）のお店`
+      : `${body.shopName}（${body.area ?? ''}）`
 
-以下の食べログURLのお店について、GoogleマップのGoogle口コミURLとPlace IDを調査してください。
+    const searchHint = body.tabelogUrl
+      ? `まず食べログURLから店名と地域を読み取り、その情報でGoogleマップを検索してください。`
+      : `「${body.shopName} ${body.area ?? ''} Googleマップ」で検索してください。`
 
-食べログURL：${body.tabelogUrl}
+    const fullPrompt = `
+あなたは飲食店のGoogle Place IDを調査する専門アシスタントです。
 
-【重要】Web検索はちょうど2回だけ実行してください。それ以上は絶対に行わないこと。
-1回目：食べログURLからお店の名前と地域を読み取り、「店名 地域 Googleマップ」で検索
-2回目：見つかったGoogleマップのURLからPlace IDを特定するために追加検索（必要な場合のみ）
-`
-      : `
-あなたは飲食店のGoogleビジネス情報を調査するアシスタントです。
+対象店舗：${shopName}
 
-以下の店舗について、GoogleマップのGoogle口コミURLとPlace IDを調査してください。
+【ミッション】この店舗のGoogle Place IDとGoogle口コミURLを特定してください。
 
-店名：${body.shopName}
-エリア：${body.area ?? ''}
+【検索手順】Web検索を最大3回まで実行してください。
+1回目：${searchHint}
+  → 検索結果のURLの中から「maps.google.com」「google.com/maps」を含むURLを探す
+  → URLの中に「ChIJ」で始まる文字列、または「!1s」の後に続く文字列があればそれがPlace ID
+2回目（必要な場合）：「${body.shopName ?? '店名'} ${body.area ?? ''} place_id OR ChIJ」で検索
+3回目（必要な場合）：「${body.shopName ?? '店名'} ${body.area ?? ''} google maps review」で検索
 
-【重要】Web検索はちょうど2回だけ実行してください。それ以上は絶対に行わないこと。
-1回目：「${body.shopName} ${body.area ?? ''} Googleマップ」で検索
-2回目：見つかったGoogleマップのURLからPlace IDを特定するために追加検索（必要な場合のみ）
-`
+【Place IDの見つけ方】
+- GoogleマップURLの例：https://www.google.com/maps/place/店名/@緯度,経度,/data=!4m6!3m5!1s【ここがPlace ID: ChIJで始まる】
+- 「!1s」の直後に来る「ChIJ」で始まる文字列がPlace ID
+- Place IDが見つかったら、Google口コミURLは https://search.google.com/local/writereview?placeid=【Place ID】 で生成できる
 
-    const fullPrompt = prompt + `
 以下の形式のみで出力してください（前置き・後置き・説明文は一切不要）：
 
-店名：（店名）
-Google口コミURL：（https://search.google.com/local/writereview?placeid=XXXXX の形式）
-Place ID：（ChIJXXXXX... の形式）
-Googleマップ URL：（https://maps.google.com/... の形式）
-
-※Place IDはGoogleマップのURLに含まれる「ChIJ」または「0x」から始まる文字列です。
-※Google口コミURLはPlace IDが判明した場合は https://search.google.com/local/writereview?placeid={PlaceID} の形式で生成してください。
-※情報が見つからない項目は「情報なし」と記載してください。
+店名：（正式な店名）
+Place ID：（ChIJXXXXX... の形式。見つからない場合は「情報なし」）
+Google口コミURL：（https://search.google.com/local/writereview?placeid=XXXXX の形式。Place IDが不明なら「情報なし」）
+GoogleマップURL：（見つかったGoogleマップのURL。なければ「情報なし」）
 `
 
     const encoder = new TextEncoder()

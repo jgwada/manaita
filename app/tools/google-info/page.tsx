@@ -24,7 +24,7 @@ function parseResult(raw: string): Result {
     shopName: get('店名'),
     reviewUrl: get('Google口コミURL'),
     placeId: get('Place ID'),
-    mapsUrl: get('Googleマップ URL'),
+    mapsUrl: get('GoogleマップURL'),
   }
 }
 
