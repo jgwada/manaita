@@ -35,7 +35,7 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  const doResearch = async (shopId: string) => {
+  const doResearch = async (shopId: string, retryCount = 0) => {
     setResearchingId(shopId)
     setResearchedId(null)
     setResearchError(null)
@@ -51,7 +51,7 @@ export default function AdminPage() {
       if (json.success) {
         setResearchedId(shopId)
         setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research, research_updated_at: json.research_updated_at } : s))
-      } else if (json.error === 'RATE_LIMIT') {
+      } else if (json.error === 'RATE_LIMIT' && retryCount < 2) {
         setRetryShopId(shopId)
         let count = 60
         setRetryCountdown(count)
@@ -60,11 +60,13 @@ export default function AdminPage() {
           if (count <= 0) {
             clearInterval(timer)
             setRetryCountdown(null)
-            doResearch(shopId)
+            doResearch(shopId, retryCount + 1)
           } else {
             setRetryCountdown(count)
           }
         }, 1000)
+      } else if (json.error === 'RATE_LIMIT') {
+        setResearchError('レート制限が続いています。しばらく時間をおいてから再試行してください。')
       } else {
         setResearchError(json.error || 'リサーチに失敗しました')
       }
