@@ -100,8 +100,8 @@ export default function GoogleInfoPage() {
               )}
 
               <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111008] mb-0.5">共有URLで取得</p>
-                <p className="text-xs text-[#9A8880] mb-3">GoogleマップまたはGoogleビジネスプロフィールの「共有」ボタンからコピーしたURLを貼り付けてください</p>
+                <p className="text-sm font-bold text-[#111008] mb-0.5">GoogleマップのURLで取得</p>
+                <p className="text-xs text-[#9A8880] mb-3">Googleマップアプリで「共有」→「リンクをコピー」で取得したURLを貼り付けてください</p>
                 <input
                   type="url"
                   value={mapsUrl}
@@ -121,9 +121,10 @@ export default function GoogleInfoPage() {
 
               <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl px-4 py-3 text-xs text-[#9A8880] space-y-1.5">
                 <p className="font-bold text-[#111008]">📌 URLの取得方法</p>
-                <p>① Googleマップでお店を検索して開く</p>
-                <p>② 「共有」ボタン（または ⋮ メニュー）をタップ</p>
-                <p>③ 「リンクをコピー」で取得したURLを貼り付ける</p>
+                <p>① Googleマップアプリでお店を検索して開く</p>
+                <p>② 右上の「共有」ボタン（📤）をタップ</p>
+                <p>③ 「リンクをコピー」で <span className="font-medium text-[#111008]">maps.app.goo.gl/...</span> のURLを取得</p>
+                <p>④ そのURLをここに貼り付ける</p>
               </div>
             </>
           )}
