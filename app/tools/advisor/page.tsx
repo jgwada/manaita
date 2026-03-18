@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Send, Plus, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Send } from 'lucide-react'
 
 const MEMBERS = [
   { key: 'マーケッター｜田中',      short: 'マーケッター',   name: '田中', emoji: '📊', color: 'bg-blue-50 border-blue-200',    nameColor: 'text-blue-700',   dot: 'bg-blue-500' },
@@ -86,15 +86,6 @@ function StreamingBubble({ text }: { text: string }) {
 export default function AdvisorPage() {
   const { shopProfile } = useAppStore()
 
-  // リサーチフェーズ
-  const [urls, setUrls] = useState<string[]>([''])
-  const [researching, setResearching] = useState(false)
-  const [researchStream, setResearchStream] = useState('')
-  const [researchDone, setResearchDone] = useState(false)
-  const [showResearch, setShowResearch] = useState(true)
-  const [researchError, setResearchError] = useState('')
-
-  // チャットフェーズ
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -105,46 +96,7 @@ export default function AdvisorPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [turns, streamText, researchStream])
-
-  const handleResearch = async () => {
-    if (!shopProfile) return
-    setResearching(true)
-    setResearchStream('')
-    setResearchError('')
-
-    try {
-      const response = await fetch('/api/advisor-research', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopProfile, urls: urls.filter(Boolean) }),
-      })
-      const contentType = response.headers.get('content-type') ?? ''
-      if (!response.ok || contentType.includes('application/json')) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? 'エラーが発生しました')
-      }
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let result = ''
-      while (true) {
-        const { done, value } = await reader!.read()
-        if (done) break
-        result += decoder.decode(value)
-        setResearchStream(result)
-      }
-      if (result.startsWith('ERROR:')) {
-        setResearchError(result.replace('ERROR:', '').trim())
-      } else {
-        setResearchDone(true)
-        setShowResearch(false)
-      }
-    } catch (e) {
-      setResearchError(e instanceof Error ? e.message : 'リサーチに失敗しました。')
-    } finally {
-      setResearching(false)
-    }
-  }
+  }, [turns, streamText])
 
   const buildMessages = (userText: string) => {
     const msgs: { role: 'user' | 'assistant'; content: string }[] = []
@@ -175,7 +127,7 @@ export default function AdvisorPage() {
         body: JSON.stringify({
           messages: buildMessages(text),
           shopProfile,
-          researchContext: researchDone ? researchStream : undefined,
+          researchContext: shopProfile.researchCache ?? undefined,
         }),
       })
       const contentType = response.headers.get('content-type') ?? ''
@@ -220,98 +172,7 @@ export default function AdvisorPage() {
             backHref="/"
           />
 
-          {/* ── リサーチパネル ── */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl overflow-hidden mb-4">
-            <button
-              onClick={() => setShowResearch(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-3 hover:bg-[#FFF9F5] transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Search size={16} className="text-[#E8320A]" />
-                <span className="text-sm font-bold text-[#111008]">
-                  {researchDone ? '✅ 店舗リサーチ完了' : '店舗ディープリサーチ'}
-                </span>
-                {researchDone && (
-                  <span className="text-xs text-[#9A8880]">（タップで確認）</span>
-                )}
-              </div>
-              {showResearch ? <ChevronUp size={16} className="text-[#9A8880]" /> : <ChevronDown size={16} className="text-[#9A8880]" />}
-            </button>
-
-            {showResearch && (
-              <div className="border-t border-[#EDE5DF] px-5 py-4">
-                {!researchDone && (
-                  <>
-                    <p className="text-xs text-[#9A8880] mb-3">
-                      食べログ・ホットペッパー・公式サイト・InstagramなどのURLを入力すると、チームがネット上の情報を徹底リサーチします。URLなしでも店舗プロフィールをもとに分析します。
-                    </p>
-                    <div className="space-y-2 mb-3">
-                      {urls.map((url, i) => (
-                        <div key={i} className="flex gap-2">
-                          <input
-                            type="url"
-                            value={url}
-                            onChange={e => {
-                              const next = [...urls]
-                              next[i] = e.target.value
-                              setUrls(next)
-                            }}
-                            placeholder={`URL ${i + 1}（例：食べログのページ）`}
-                            className="flex-1 border border-[#EDE5DF] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
-                          />
-                          {urls.length > 1 && (
-                            <button onClick={() => setUrls(urls.filter((_, j) => j !== i))} className="text-[#9A8880] hover:text-[#E8320A]">
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    {urls.length < 5 && (
-                      <button onClick={() => setUrls([...urls, ''])} className="flex items-center gap-1 text-xs text-[#9A8880] hover:text-[#E8320A] mb-4">
-                        <Plus size={12} /> URLを追加
-                      </button>
-                    )}
-                    <button
-                      onClick={handleResearch}
-                      disabled={researching}
-                      className="w-full bg-[#111008] text-white rounded-xl py-3 font-bold text-sm hover:bg-black transition-colors disabled:opacity-40"
-                    >
-                      {researching ? 'リサーチ中...' : '🔍 ディープリサーチ開始'}
-                    </button>
-                  </>
-                )}
-
-                {researchError && (
-                  <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mt-3">{researchError}</div>
-                )}
-
-                {(researching || researchDone) && researchStream && (
-                  <div className="mt-4">
-                    {researching && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 border-2 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs text-[#9A8880]">ネット上の情報を収集しています...</span>
-                      </div>
-                    )}
-                    <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-4 max-h-64 overflow-y-auto">
-                      <p className="text-xs text-[#111008] leading-relaxed whitespace-pre-wrap">{researchStream}</p>
-                    </div>
-                    {researchDone && (
-                      <button
-                        onClick={() => { setShowResearch(false) }}
-                        className="w-full mt-3 bg-[#E8320A] text-white rounded-xl py-3 font-bold text-sm hover:bg-[#c92b09] transition-colors"
-                      >
-                        チームと議論を始める →
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* ── チームメンバー紹介（初回のみ） ── */}
+          {/* チームメンバー紹介（初回のみ） */}
           {turns.length === 0 && !loading && (
             <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
               <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest mb-3">プロジェクトチーム</p>
@@ -326,13 +187,13 @@ export default function AdvisorPage() {
                   </div>
                 ))}
               </div>
-              {researchDone && (
-                <p className="text-xs text-green-600 font-bold mt-3 text-center">✅ 店舗リサーチ完了 — チームは全情報を把握しています</p>
+              {shopProfile?.researchCache && (
+                <p className="text-xs text-green-600 font-bold mt-3 text-center">✅ 店舗リサーチ済み — チームは全情報を把握しています</p>
               )}
             </div>
           )}
 
-          {/* ── チャット履歴 ── */}
+          {/* チャット履歴 */}
           <div className="flex-1 space-y-4 mb-4">
             {turns.map((turn, i) => {
               if (turn.role === 'ceo') {
@@ -367,7 +228,7 @@ export default function AdvisorPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* ── 入力エリア ── */}
+          {/* 入力エリア */}
           <div className="bg-white border border-[#EDE5DF] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
             <textarea
               value={input}
