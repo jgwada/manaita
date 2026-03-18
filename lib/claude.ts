@@ -107,7 +107,7 @@ export async function callClaudeWithWebSearchStream(
 export async function callClaudeWithContentStream(
   content: Anthropic.MessageParam['content'],
   onChunk: (text: string) => void,
-  maxTokens = 6000
+  maxTokens = 10000
 ): Promise<void> {
   try {
     const stream = await client.messages.stream({
