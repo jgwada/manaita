@@ -5,13 +5,17 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
-import { Store, Users, Plus } from 'lucide-react'
+import { Store, Users, Plus, RefreshCw, CheckCircle } from 'lucide-react'
+
+type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null }
 
 export default function AdminPage() {
   const router = useRouter()
   const { user } = useAppStore()
-  const [shops, setShops] = useState<{ id: string; name: string; area: string; industry: string }[]>([])
+  const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
+  const [researchingId, setResearchingId] = useState<string | null>(null)
+  const [researchedId, setResearchedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -26,6 +30,25 @@ export default function AdminPage() {
     const json = await res.json()
     if (json.success) setShops(json.data)
     setLoading(false)
+  }
+
+  const handleReResearch = async (shopId: string) => {
+    setResearchingId(shopId)
+    setResearchedId(null)
+    try {
+      const res = await fetch('/api/admin/research-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setResearchedId(shopId)
+        setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research } : s))
+      }
+    } finally {
+      setResearchingId(null)
+    }
   }
 
   return (
@@ -71,9 +94,39 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-2">
               {shops.map((shop) => (
-                <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl px-4 py-3">
-                  <p className="font-medium text-[#111008]">{shop.name}</p>
-                  <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
+                <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-[#111008]">{shop.name}</p>
+                    <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
+                    <p className="text-xs mt-0.5">
+                      {shop.research_cache
+                        ? <span className="text-green-600">リサーチ済み</span>
+                        : <span className="text-[#9A8880]">未リサーチ</span>
+                      }
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleReResearch(shop.id)}
+                    disabled={researchingId === shop.id}
+                    className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  >
+                    {researchingId === shop.id ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" />
+                        リサーチ中...
+                      </>
+                    ) : researchedId === shop.id ? (
+                      <>
+                        <CheckCircle size={12} className="text-green-600" />
+                        完了
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={12} />
+                        再リサーチ
+                      </>
+                    )}
+                  </button>
                 </div>
               ))}
             </div>

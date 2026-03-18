@@ -94,7 +94,10 @@ export default function SetupPage() {
         <Header />
         <div className="max-w-lg mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-[#111008] mb-1">店舗プロフィール設定</h1>
-          <p className="text-sm text-[#9A8880] mb-6">入力した情報をもとにAIが最適な文章を生成します</p>
+          <p className="text-sm text-[#9A8880] mb-3">入力した情報をもとにAIが最適な文章を生成します</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6">
+            <p className="text-xs text-amber-700">店舗のネット上の情報をAIが自動リサーチし、より精度の高い回答を提供しています。リサーチ情報を更新したい場合は、運営者までお問い合わせください。</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-[#EDE5DF] rounded-xl p-6">
             {fields.map((field) => (

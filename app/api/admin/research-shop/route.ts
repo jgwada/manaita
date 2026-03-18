@@ -8,31 +8,29 @@ import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
   try {
-    const { name, area, industry, priceRange, seats, googleReviewUrl, placeId } = await req.json()
+    const { shopId } = await req.json() as { shopId: string }
 
-    const { data, error } = await supabaseAdmin.from('shops').insert({
-      name,
-      area,
-      industry,
-      price_range: priceRange || null,
-      seats: seats ? parseInt(seats) : null,
-      google_review_url: googleReviewUrl || null,
-      place_id: placeId || null,
-    }).select().single()
+    const { data: shop, error } = await supabaseAdmin
+      .from('shops')
+      .select('*')
+      .eq('id', shopId)
+      .single()
 
-    if (error) throw error
+    if (error || !shop) {
+      return NextResponse.json({ success: false, error: '店舗が見つかりません' })
+    }
 
-    // 登録直後に自動でディープリサーチを実行
     const shopProfile: ShopProfile = {
-      id: data.id,
-      name,
-      area,
-      industry,
-      priceRange: priceRange || '',
-      seats: seats ? parseInt(seats) : 0,
-      googleReviewUrl: googleReviewUrl || '',
-      placeId: placeId || '',
-      createdAt: data.created_at,
+      id: shop.id,
+      name: shop.name,
+      area: shop.area,
+      industry: shop.industry,
+      priceRange: shop.price_range,
+      seats: shop.seats,
+      googleReviewUrl: shop.google_review_url,
+      placeId: shop.place_id,
+      lineOfficialUrl: shop.line_official_url,
+      createdAt: shop.created_at,
     }
 
     const prompt = `
@@ -53,21 +51,24 @@ ${shopContext(shopProfile)}
 7. 弱み・課題（口コミや状況から読み取れる改善点）
 8. メディア掲載・受賞歴（雑誌・テレビ・グルメサイト掲載など）
 
+調査結果はプロジェクトチームへの共有レポートとして、箇条書きと見出しを使って読みやすく整理してください。
 情報が見つからない項目は「情報なし」と明記してください。
 `
 
-    try {
-      let research = ''
-      await callClaudeWithWebSearchStream(prompt, (text) => { research += text })
-      await supabaseAdmin.from('shops').update({ research_cache: research }).eq('id', data.id)
-    } catch (researchError) {
-      console.error('auto research failed:', researchError)
-      // リサーチ失敗しても店舗登録自体は成功とする
-    }
+    let result = ''
+    await callClaudeWithWebSearchStream(prompt, (text) => {
+      result += text
+    })
 
-    return NextResponse.json({ success: true, data })
+    await supabaseAdmin
+      .from('shops')
+      .update({ research_cache: result })
+      .eq('id', shopId)
+
+    return NextResponse.json({ success: true, research: result })
   } catch (error) {
-    console.error('create-shop error:', error)
-    return NextResponse.json({ success: false, error: '店舗の登録に失敗しました。' })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('research-shop error:', msg)
+    return NextResponse.json({ success: false, error: msg })
   }
 }

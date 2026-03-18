@@ -45,7 +45,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             priceRange: data.shop.price_range,
             seats: data.shop.seats,
             googleReviewUrl: data.shop.google_review_url,
+            placeId: data.shop.place_id,
             lineOfficialUrl: data.shop.line_official_url,
+            researchCache: data.shop.research_cache,
             createdAt: data.shop.created_at,
           })
         }

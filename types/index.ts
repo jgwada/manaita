@@ -8,6 +8,7 @@ export interface ShopProfile {
   googleReviewUrl: string
   placeId?: string
   lineOfficialUrl?: string
+  researchCache?: string
   createdAt: string
 }
 

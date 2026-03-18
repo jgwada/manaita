@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from('shops')
-      .select('id, name, area, industry')
+      .select('id, name, area, industry, research_cache')
       .order('created_at', { ascending: false })
 
     if (error) throw error
