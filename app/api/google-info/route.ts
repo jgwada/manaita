@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       if (!placeId) {
         return NextResponse.json({
           success: false,
-          error: 'URLからPlace IDを取得できませんでした。GoogleマップまたはGoogleビジネスプロフィールの共有URLを確認してください。',
+          error: `[DEBUG] リダイレクト後URL=${url}`,
         })
       }
     }
