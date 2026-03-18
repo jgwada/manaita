@@ -18,7 +18,7 @@ export default function Header() {
     <header className="bg-[#111008] text-white px-4 py-3 flex items-center justify-between">
       <button
         onClick={() => router.push('/')}
-        className="text-xl font-bold tracking-wider"
+        className="text-xl font-bold tracking-wider transition-transform hover:scale-125 origin-left"
         style={{ fontFamily: 'Oswald, sans-serif' }}
       >
         MANAITA
