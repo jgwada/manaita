@@ -5,9 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { FileText, Camera, Type, Upload, CheckCircle, Copy } from 'lucide-react'
-
-type InputMethod = 'pdf' | 'image' | 'text'
+import { Upload, X, CheckCircle, Copy, FileText, Image as ImageIcon } from 'lucide-react'
 
 // 画像をCanvas経由で圧縮してbase64（JPEG）に変換
 function compressImageToBase64(file: File, maxPx = 1600, quality = 0.85): Promise<string> {
@@ -118,7 +116,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 
   return (
     <div className={`bg-white border-2 ${color.border} rounded-2xl overflow-hidden`}>
-      {/* ヘッダー */}
       <div className={`${color.bg} px-5 py-4 border-b ${color.border}`}>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -139,7 +136,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        {/* コース構成 */}
         <div>
           <p className="text-xs font-bold text-[#9A8880] uppercase tracking-wider mb-2">コース構成</p>
           <ul className="space-y-1">
@@ -152,7 +148,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
           </ul>
         </div>
 
-        {/* 価格・利益グリッド */}
         <div>
           <p className="text-xs font-bold text-[#9A8880] uppercase tracking-wider mb-2">価格・収益シミュレーション</p>
           <div className="grid grid-cols-2 gap-2">
@@ -178,7 +173,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
           )}
         </div>
 
-        {/* 売りポイント */}
         {plan.appeal && (
           <div className={`${color.bg} rounded-xl p-3`}>
             <p className="text-xs font-bold text-[#9A8880] mb-1">💡 売りポイント</p>
@@ -186,7 +180,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
           </div>
         )}
 
-        {/* 追加食材 */}
         {plan.additionalIngredients.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
             <p className="text-xs font-bold text-amber-700 mb-2">🛒 追加食材</p>
@@ -204,9 +197,8 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 
 export default function BanquetGenPage() {
   const { shopProfile } = useAppStore()
-  const [method, setMethod] = useState<InputMethod>('pdf')
   const [ingredientMode, setIngredientMode] = useState<'existing' | 'additional'>('additional')
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [menuText, setMenuText] = useState('')
   const [priceMin, setPriceMin] = useState('5000')
   const [priceMax, setPriceMax] = useState('8000')
@@ -218,31 +210,32 @@ export default function BanquetGenPage() {
   const plans = parsePlans(rawOutput)
   const hasResults = plans.length > 0
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    if (f.size > 4 * 1024 * 1024) {
-      setError('ファイルサイズが大きすぎます。4MB以下のPDFをご利用ください。\n※大きいPDFはページ数を減らすか、圧縮してからお試しください。')
-      return
+  const addFiles = (newFiles: FileList | null) => {
+    if (!newFiles) return
+    const valid: File[] = []
+    for (const f of Array.from(newFiles)) {
+      if (f.size > 4 * 1024 * 1024) {
+        setError(`「${f.name}」は4MBを超えています。圧縮してから追加してください。`)
+        continue
+      }
+      valid.push(f)
     }
-    setFile(f)
+    setFiles(prev => [...prev, ...valid])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    const f = e.dataTransfer.files?.[0]
-    if (!f) return
-    if (f.size > 4 * 1024 * 1024) {
-      setError('ファイルサイズが大きすぎます。4MB以下のPDFをご利用ください。\n※大きいPDFはページ数を減らすか、圧縮してからお試しください。')
-      return
-    }
-    setFile(f)
+    addFiles(e.dataTransfer.files)
   }
 
   const canGenerate = () => {
     if (!shopProfile) return false
-    if (method === 'text') return menuText.trim().length > 0
-    return file !== null
+    return files.length > 0 || menuText.trim().length > 0
   }
 
   const handleGenerate = async () => {
@@ -252,28 +245,21 @@ export default function BanquetGenPage() {
     setLoading(true)
 
     try {
-      if ((method === 'pdf' || method === 'image') && file) {
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error('ファイルサイズが大きすぎます（20MB以下のファイルをご利用ください）')
-        }
-      }
-
       const formData = new FormData()
-      formData.append('inputType', method)
       formData.append('shopProfile', JSON.stringify(shopProfile))
       formData.append('priceMin', priceMin)
       formData.append('priceMax', priceMax)
       formData.append('ingredientMode', ingredientMode)
-      if (method === 'text') {
-        formData.append('menuText', menuText)
-      } else if (file) {
-        // 画像はCanvasで圧縮してから送る
-        if (method === 'image') {
-          const compressed = await compressImageToBase64(file)
+      formData.append('menuText', menuText)
+
+      for (const f of files) {
+        const isImage = f.type.startsWith('image/')
+        if (isImage) {
+          const compressed = await compressImageToBase64(f)
           const blob = await fetch(`data:image/jpeg;base64,${compressed}`).then(r => r.blob())
-          formData.append('file', blob, 'menu.jpg')
+          formData.append('file', blob, f.name.replace(/\.[^.]+$/, '.jpg'))
         } else {
-          formData.append('file', file)
+          formData.append('file', f)
         }
       }
 
@@ -282,7 +268,6 @@ export default function BanquetGenPage() {
         body: formData,
       })
 
-      // JSON エラーレスポンスを先に検出
       const contentType = response.headers.get('content-type') ?? ''
       if (!response.ok || contentType.includes('application/json')) {
         const data = await response.json().catch(() => ({}))
@@ -311,12 +296,6 @@ export default function BanquetGenPage() {
     }
   }
 
-  const methods: { id: InputMethod; icon: React.ReactNode; label: string; sub: string }[] = [
-    { id: 'pdf', icon: <FileText size={22} />, label: 'PDFを読み込む', sub: 'メニューのPDFファイル' },
-    { id: 'image', icon: <Camera size={22} />, label: '写真を使う', sub: 'メニューを撮影した画像' },
-    { id: 'text', icon: <Type size={22} />, label: 'テキストで入力', sub: 'メニューをコピペ' },
-  ]
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#FFF9F5]">
@@ -324,7 +303,7 @@ export default function BanquetGenPage() {
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
             title="宴会プランジェネレーター"
-            description="グランドメニューを読み込んで、売れる宴会プランと価格を自動提案"
+            description="メニューを読み込んで、売れる宴会プランと価格を自動提案"
             backHref="/"
           />
 
@@ -334,52 +313,30 @@ export default function BanquetGenPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <label className="text-xs text-[#9A8880] mb-1 block">下限</label>
-                <input
-                  type="number"
-                  value={priceMin}
-                  onChange={e => setPriceMin(e.target.value)}
-                  step={500}
-                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
-                />
+                <input type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)} step={500}
+                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
               </div>
               <span className="text-[#9A8880] mt-4">〜</span>
               <div className="flex-1">
                 <label className="text-xs text-[#9A8880] mb-1 block">上限</label>
-                <input
-                  type="number"
-                  value={priceMax}
-                  onChange={e => setPriceMax(e.target.value)}
-                  step={500}
-                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
-                />
+                <input type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)} step={500}
+                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
               </div>
             </div>
           </div>
 
-          {/* 食材モード選択 */}
+          {/* 食材モード */}
           <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
             <p className="text-sm font-bold text-[#111008] mb-3">食材の使い方</p>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setIngredientMode('existing')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${
-                  ingredientMode === 'existing'
-                    ? 'border-[#E8320A] bg-red-50 text-[#E8320A]'
-                    : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'
-                }`}
-              >
+              <button onClick={() => setIngredientMode('existing')}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'existing' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'}`}>
                 <span className="text-lg">🍽️</span>
                 <span className="text-xs font-bold">既存食材のみ</span>
                 <span className="text-[10px] opacity-70">今あるもので組む</span>
               </button>
-              <button
-                onClick={() => setIngredientMode('additional')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${
-                  ingredientMode === 'additional'
-                    ? 'border-[#E8320A] bg-red-50 text-[#E8320A]'
-                    : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'
-                }`}
-              >
+              <button onClick={() => setIngredientMode('additional')}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'additional' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'}`}>
                 <span className="text-lg">🛒</span>
                 <span className="text-xs font-bold">追加食材もOK</span>
                 <span className="text-[10px] opacity-70">買い足しも提案</span>
@@ -387,93 +344,66 @@ export default function BanquetGenPage() {
             </div>
           </div>
 
-          {/* 入力方法選択 */}
+          {/* ファイル添付 */}
           <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-3">メニューの入力方法</p>
-            <div className="grid grid-cols-3 gap-2">
-              {methods.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => { setMethod(m.id); setFile(null); setMenuText('') }}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
-                    method === m.id
-                      ? 'border-[#E8320A] bg-red-50 text-[#E8320A]'
-                      : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'
-                  }`}
-                >
-                  {m.icon}
-                  <span className="text-xs font-bold leading-tight">{m.label}</span>
-                  <span className="text-[10px] opacity-70">{m.sub}</span>
-                </button>
-              ))}
+            <p className="text-sm font-bold text-[#111008] mb-1">メニューのファイルを添付</p>
+            <p className="text-xs text-[#9A8880] mb-3">PDF・JPEG・PNG を複数添付できます（1ファイル4MBまで）</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png"
+              multiple
+              onChange={e => addFiles(e.target.files)}
+              className="hidden"
+            />
+
+            {files.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
+                    {f.type === 'application/pdf'
+                      ? <FileText size={16} className="text-green-600 flex-shrink-0" />
+                      : <ImageIcon size={16} className="text-green-600 flex-shrink-0" />
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#111008] truncate">{f.name}</p>
+                      <p className="text-[10px] text-[#9A8880]">{(f.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <button onClick={() => removeFile(i)} className="text-[#9A8880] hover:text-[#E8320A] flex-shrink-0">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div
+              onDrop={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-[#EDE5DF] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
+            >
+              <Upload size={22} className="text-[#9A8880]" />
+              <p className="text-xs font-bold text-[#111008]">ファイルを追加</p>
+              <p className="text-[10px] text-[#9A8880]">タップ または ドラッグ＆ドロップ</p>
             </div>
           </div>
 
-          {/* 入力エリア */}
+          {/* テキスト入力 */}
           <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            {(method === 'pdf' || method === 'image') && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={method === 'pdf' ? 'application/pdf' : 'image/*'}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  capture={method === 'image' ? 'environment' : undefined}
-                />
-                {file ? (
-                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[#111008] truncate">{file.name}</p>
-                      <p className="text-xs text-[#9A8880]">{(file.size / 1024).toFixed(0)} KB</p>
-                    </div>
-                    <button
-                      onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
-                      className="text-xs text-[#9A8880] hover:text-[#E8320A]"
-                    >
-                      変更
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={e => e.preventDefault()}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-[#EDE5DF] rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
-                  >
-                    <Upload size={28} className="text-[#9A8880]" />
-                    <div className="text-center">
-                      <p className="text-sm font-bold text-[#111008]">
-                        {method === 'pdf' ? 'PDFをアップロード' : '写真を選択・撮影'}
-                      </p>
-                      <p className="text-xs text-[#9A8880] mt-1">タップしてファイルを選ぶ</p>
-                      <p className="text-[10px] text-amber-600 mt-1">※上限 4MB まで</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {method === 'text' && (
-              <>
-                <p className="text-sm font-medium text-[#111008] mb-2">
-                  メニューの内容を貼り付けてください
-                </p>
-                <textarea
-                  value={menuText}
-                  onChange={e => setMenuText(e.target.value)}
-                  placeholder={`例：
-【前菜】サラダ 680円、枝豆 380円
-【刺身】本日の刺身盛り 1,280円
-【焼き物】牛タン塩焼き 1,480円、鶏もも焼き 780円
-【揚げ物】唐揚げ 680円
+            <p className="text-sm font-bold text-[#111008] mb-1">テキストで補足入力 <span className="text-[#9A8880] font-normal text-xs">（任意）</span></p>
+            <p className="text-xs text-[#9A8880] mb-2">日替わりメニューや追加食材など、ファイルに載っていない情報を自由に入力できます</p>
+            <textarea
+              value={menuText}
+              onChange={e => setMenuText(e.target.value)}
+              placeholder={`例：
+本日のおすすめ：天然ぶり刺身 980円
+日替わり食材：松茸（今週のみ）
 ...`}
-                  rows={8}
-                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
-                />
-              </>
-            )}
+              rows={4}
+              className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+            />
           </div>
 
           {/* 生成ボタン */}
@@ -485,7 +415,6 @@ export default function BanquetGenPage() {
             {loading ? '分析・生成中...' : '🍺 宴会プランを提案してもらう'}
           </button>
 
-          {/* ローディング */}
           {loading && (
             <div className="bg-white border border-[#EDE5DF] rounded-2xl p-8 text-center mb-6">
               <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -494,14 +423,12 @@ export default function BanquetGenPage() {
             </div>
           )}
 
-          {/* エラー */}
           {error && (
-            <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4">
+            <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4 whitespace-pre-wrap">
               {error}
             </div>
           )}
 
-          {/* 結果 */}
           {!loading && hasResults && (
             <div className="space-y-4">
               <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest">

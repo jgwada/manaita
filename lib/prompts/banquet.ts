@@ -23,13 +23,18 @@ ${shopContext(shop)}
 （50字程度）
 `
 
-export const buildBanquetGenPrompt = (shop: ShopProfile, menuText: string | null, priceMin = '5000', priceMax = '8000', ingredientMode: 'existing' | 'additional' = 'additional'): string => `
+export const buildBanquetGenPrompt = (shop: ShopProfile, menuText: string | null, priceMin = '5000', priceMax = '8000', ingredientMode: 'existing' | 'additional' = 'additional', hasFiles = false): string => `
 あなたは飲食店経営の専門コンサルタントです。
 ${shopContext(shop)}
 
-${menuText
-  ? `以下がこの店のグランドメニューです：\n\n${menuText}`
-  : '添付のグランドメニュー（PDF・画像）を参照してください。'}
+${hasFiles && menuText
+  ? `添付ファイル（PDF・画像）と以下の補足情報を合わせて参照してください。\n\n【補足情報】\n${menuText}`
+  : hasFiles
+  ? '添付のメニューファイル（PDF・画像）を参照してください。'
+  : menuText
+  ? `以下がこの店のメニュー情報です：\n\n${menuText}`
+  : 'メニュー情報をもとに提案してください。'
+}
 
 【あなたのミッション】
 このお店のグランドメニューから使用している食材・調理技術・調理設備を読み取り、${ingredientMode === 'existing'

@@ -9,41 +9,43 @@ import { ShopProfile } from '@/types'
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
-    const inputType = formData.get('inputType') as 'text' | 'pdf' | 'image'
     const shopProfile: ShopProfile = JSON.parse(formData.get('shopProfile') as string)
     const priceMin = formData.get('priceMin') as string ?? '5000'
     const priceMax = formData.get('priceMax') as string ?? '8000'
     const ingredientMode = (formData.get('ingredientMode') as 'existing' | 'additional') ?? 'additional'
+    const menuText = (formData.get('menuText') as string ?? '').trim()
+    const files = formData.getAll('file') as File[]
+
+    const promptText = buildBanquetGenPrompt(shopProfile, menuText || null, priceMin, priceMax, ingredientMode, files.length > 0)
 
     let messageContent: Anthropic.MessageParam['content']
-    const promptText = buildBanquetGenPrompt(
-      shopProfile,
-      inputType === 'text' ? (formData.get('menuText') as string ?? '') : null,
-      priceMin,
-      priceMax,
-      ingredientMode
-    )
 
-    if (inputType === 'text') {
+    if (files.length === 0) {
       messageContent = promptText
     } else {
-      const file = formData.get('file') as File | null
-      if (!file) return NextResponse.json({ success: false, error: 'ファイルが見つかりません。' })
-      const buffer = Buffer.from(await file.arrayBuffer())
-      const base64 = buffer.toString('base64')
+      const blocks: Anthropic.MessageParam['content'] = []
 
-      if (inputType === 'pdf') {
-        messageContent = [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } } as Anthropic.DocumentBlockParam,
-          { type: 'text', text: promptText }
-        ]
-      } else {
-        const mt = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
-        messageContent = [
-          { type: 'image', source: { type: 'base64', media_type: mt, data: base64 } } as Anthropic.ImageBlockParam,
-          { type: 'text', text: promptText }
-        ]
+      for (const file of files) {
+        const buffer = Buffer.from(await file.arrayBuffer())
+        const base64 = buffer.toString('base64')
+        const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf')
+
+        if (isPdf) {
+          blocks.push({
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+          } as Anthropic.DocumentBlockParam)
+        } else {
+          const mt = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+          blocks.push({
+            type: 'image',
+            source: { type: 'base64', media_type: mt, data: base64 }
+          } as Anthropic.ImageBlockParam)
+        }
       }
+
+      blocks.push({ type: 'text', text: promptText })
+      messageContent = blocks
     }
 
     const encoder = new TextEncoder()
