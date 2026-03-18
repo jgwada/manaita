@@ -1,10 +1,5 @@
-export const maxDuration = 60
-
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { callClaudeWithWebSearchStream } from '@/lib/claude'
-import { shopContext } from '@/lib/prompts/helpers'
-import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
   try {
@@ -21,49 +16,6 @@ export async function POST(req: Request) {
     }).select().single()
 
     if (error) throw error
-
-    // 登録直後に自動でディープリサーチを実行
-    const shopProfile: ShopProfile = {
-      id: data.id,
-      name,
-      area,
-      industry,
-      priceRange: priceRange || '',
-      seats: seats ? parseInt(seats) : 0,
-      googleReviewUrl: googleReviewUrl || '',
-      placeId: placeId || '',
-      createdAt: data.created_at,
-    }
-
-    const prompt = `
-あなたは飲食店専門のリサーチャーです。
-以下の店舗について、ネット上に存在するすべての情報を調査し、包括的なレポートを作成してください。
-Web検索ツールを積極的に使い、できる限り詳細な情報を収集してください。
-
-${shopContext(shopProfile)}
-
-以下の観点を網羅して調査・レポートしてください：
-
-1. 基本情報（住所・営業時間・定休日・席数・予約可否・アクセス）
-2. メニュー・料理の特徴（代表メニュー・価格帯・こだわり・季節メニュー）
-3. 口コミ・評判（食べログ・Google・SNSの評点・よく言及されるポイント・改善点）
-4. SNS・Web上のプレゼンス（Instagram・X・TikTok・公式サイトの状況・フォロワー数・投稿頻度）
-5. 集客の現状（予約の取りやすさ・混雑状況・待ち状況・宴会利用の有無）
-6. 強み・差別化ポイント（他店と比較して優れている点）
-7. 弱み・課題（口コミや状況から読み取れる改善点）
-8. メディア掲載・受賞歴（雑誌・テレビ・グルメサイト掲載など）
-
-情報が見つからない項目は「情報なし」と明記してください。
-`
-
-    try {
-      let research = ''
-      await callClaudeWithWebSearchStream(prompt, (text) => { research += text })
-      await supabaseAdmin.from('shops').update({ research_cache: research }).eq('id', data.id)
-    } catch (researchError) {
-      console.error('auto research failed:', researchError)
-      // リサーチ失敗しても店舗登録自体は成功とする
-    }
 
     return NextResponse.json({ success: true, data })
   } catch (error) {
