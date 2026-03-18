@@ -4,12 +4,20 @@ import { NextResponse } from 'next/server'
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
-function toE164(phone: string): string {
+function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
-  if (digits.startsWith('0')) {
-    return '+81' + digits.slice(1)
+  // 11桁：050/070/080/090 → 3-4-4
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
   }
-  return '+' + digits
+  // 10桁：03/06 → 2-4-4、それ以外 → 3-3-4
+  if (digits.length === 10) {
+    if (/^(03|06)/.test(digits)) {
+      return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`
+    }
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return digits
 }
 
 export async function POST(req: Request) {
@@ -24,10 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: '電話番号を入力してください。' })
     }
 
-    const e164 = toE164(phone.trim())
-
-    // 国内形式（ハイフン付き）に正規化
-    const localPhone = phone.trim().replace(/\D/g, '').replace(/^(\d{2,4})(\d{2,4})(\d{4})$/, '$1-$2-$3')
+    const localPhone = normalizePhone(phone.trim())
 
     // 新しいPlaces API (v1) を使用
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
