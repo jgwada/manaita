@@ -58,10 +58,10 @@ ${shopContext(shopProfile)}
 
     await supabaseAdmin
       .from('shops')
-      .update({ research_cache: result })
+      .update({ research_cache: result, research_updated_at: new Date().toISOString() })
       .eq('id', shopId)
 
-    return NextResponse.json({ success: true, research: result })
+    return NextResponse.json({ success: true, research: result, research_updated_at: new Date().toISOString() })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('research-shop error:', msg)

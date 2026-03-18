@@ -7,7 +7,7 @@ import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
 import { Store, Users, Plus, RefreshCw, CheckCircle } from 'lucide-react'
 
-type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null }
+type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
 
 export default function AdminPage() {
   const router = useRouter()
@@ -50,7 +50,7 @@ export default function AdminPage() {
       const json = await res.json()
       if (json.success) {
         setResearchedId(shopId)
-        setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research } : s))
+        setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research, research_updated_at: json.research_updated_at } : s))
       } else if (json.error === 'RATE_LIMIT') {
         setRetryShopId(shopId)
         let count = 60
@@ -137,7 +137,7 @@ export default function AdminPage() {
                     <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
                     <p className="text-xs mt-0.5">
                       {shop.research_cache
-                        ? <span className="text-green-600">リサーチ済み</span>
+                        ? <span className="text-green-600">リサーチ済み{shop.research_updated_at ? `（${new Date(shop.research_updated_at).toLocaleDateString('ja-JP')}）` : ''}</span>
                         : <span className="text-[#9A8880]">未リサーチ</span>
                       }
                     </p>
