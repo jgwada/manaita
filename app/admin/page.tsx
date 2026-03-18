@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
-import { Store, Users, Plus, RefreshCw, CheckCircle } from 'lucide-react'
+import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
 
@@ -19,6 +19,7 @@ export default function AdminPage() {
   const [researchError, setResearchError] = useState<string | null>(null)
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [retryShopId, setRetryShopId] = useState<string | null>(null)
+  const [expandedCacheId, setExpandedCacheId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -133,39 +134,54 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-2">
               {shops.map((shop) => (
-                <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-[#111008]">{shop.name}</p>
-                    <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
-                    <p className="text-xs mt-0.5">
-                      {shop.research_cache
-                        ? <span className="text-green-600">リサーチ済み{shop.research_updated_at ? `（${new Date(shop.research_updated_at).toLocaleDateString('ja-JP')}）` : ''}</span>
-                        : <span className="text-[#9A8880]">未リサーチ</span>
-                      }
-                    </p>
+                <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-[#111008]">{shop.name}</p>
+                      <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
+                      <p className="text-xs mt-0.5">
+                        {shop.research_cache
+                          ? <span className="text-green-600">
+                              リサーチ済み（{shop.research_updated_at
+                                ? new Date(shop.research_updated_at).toLocaleDateString('ja-JP')
+                                : '日付不明'}）
+                            </span>
+                          : <span className="text-[#9A8880]">未リサーチ</span>
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {shop.research_cache && (
+                        <button
+                          onClick={() => setExpandedCacheId(expandedCacheId === shop.id ? null : shop.id)}
+                          className="flex items-center gap-1 text-xs text-[#9A8880] border border-[#EDE5DF] rounded-lg px-2.5 py-1.5 hover:border-[#111008] hover:text-[#111008] transition-colors"
+                        >
+                          {expandedCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          内容
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleReResearch(shop.id)}
+                        disabled={researchingId === shop.id}
+                        className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {researchingId === shop.id ? (
+                          <><RefreshCw size={12} className="animate-spin" />リサーチ中...</>
+                        ) : researchedId === shop.id ? (
+                          <><CheckCircle size={12} className="text-green-600" />完了</>
+                        ) : (
+                          <><RefreshCw size={12} />再リサーチ</>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleReResearch(shop.id)}
-                    disabled={researchingId === shop.id}
-                    className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                  >
-                    {researchingId === shop.id ? (
-                      <>
-                        <RefreshCw size={12} className="animate-spin" />
-                        リサーチ中...
-                      </>
-                    ) : researchedId === shop.id ? (
-                      <>
-                        <CheckCircle size={12} className="text-green-600" />
-                        完了
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw size={12} />
-                        再リサーチ
-                      </>
-                    )}
-                  </button>
+
+                  {expandedCacheId === shop.id && shop.research_cache && (
+                    <div className="border-t border-[#EDE5DF] px-4 py-3 bg-[#FFF9F5]">
+                      <p className="text-[10px] font-bold text-[#9A8880] uppercase tracking-wider mb-2">リサーチ内容</p>
+                      <pre className="text-xs text-[#111008] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
