@@ -6,9 +6,8 @@ import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { Copy, CheckCircle, ExternalLink, RotateCcw } from 'lucide-react'
 
-type Candidate = { shopName: string; address: string; placeId: string }
 type Result = { shopName?: string; address?: string; placeId: string; reviewUrl: string; mapsUrl: string }
-type Phase = 'input' | 'searching' | 'confirming' | 'generating' | 'done'
+type Phase = 'input' | 'generating' | 'done'
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false)
@@ -44,60 +43,34 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function GoogleInfoPage() {
   const [phase, setPhase] = useState<Phase>('input')
-  const [phone, setPhone] = useState('')
-  const [candidate, setCandidate] = useState<Candidate | null>(null)
+  const [mapsUrl, setMapsUrl] = useState('')
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
 
   const reset = () => {
     setPhase('input')
-    setCandidate(null)
     setResult(null)
     setError('')
   }
 
-  const handleSearch = async () => {
-    if (!phone.trim()) return
+  const handleGenerate = async () => {
+    if (!mapsUrl.trim()) return
     setError('')
-    setCandidate(null)
-    setPhase('searching')
-
-    try {
-      const res = await fetch('/api/google-info-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim() }),
-      })
-      const json = await res.json()
-      if (!json.success) {
-        setError(json.error || '検索に失敗しました。')
-        setPhase('input')
-      } else {
-        setCandidate(json.candidate)
-        setPhase('confirming')
-      }
-    } catch {
-      setError('検索に失敗しました。もう一度お試しください。')
-      setPhase('input')
-    }
-  }
-
-  const handleConfirm = async () => {
-    if (!candidate) return
+    setResult(null)
     setPhase('generating')
 
     try {
       const res = await fetch('/api/google-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId: candidate.placeId }),
+        body: JSON.stringify({ mapsUrl: mapsUrl.trim() }),
       })
       const json = await res.json()
       if (!json.success) {
         setError(json.error || '取得に失敗しました。')
         setPhase('input')
       } else {
-        setResult({ ...json, shopName: candidate.shopName, address: candidate.address })
+        setResult(json)
         setPhase('done')
       }
     } catch {
@@ -127,59 +100,32 @@ export default function GoogleInfoPage() {
               )}
 
               <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111008] mb-0.5">電話番号で検索</p>
-                <p className="text-xs text-[#9A8880] mb-3">Googleビジネスプロフィールにご登録の電話番号を入力してください</p>
+                <p className="text-sm font-bold text-[#111008] mb-0.5">共有URLで取得</p>
+                <p className="text-xs text-[#9A8880] mb-3">GoogleマップまたはGoogleビジネスプロフィールの「共有」ボタンからコピーしたURLを貼り付けてください</p>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSearch() } }}
-                  placeholder="例：075-123-4567"
+                  type="url"
+                  value={mapsUrl}
+                  onChange={e => setMapsUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleGenerate() } }}
+                  placeholder="https://maps.app.goo.gl/..."
                   className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
                 />
                 <button
-                  onClick={handleSearch}
-                  disabled={!phone.trim()}
+                  onClick={handleGenerate}
+                  disabled={!mapsUrl.trim()}
                   className="w-full bg-[#E8320A] text-white rounded-xl py-3 font-medium text-sm hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  🔍 電話番号で検索する
+                  🔍 URLから取得する
                 </button>
+              </div>
+
+              <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl px-4 py-3 text-xs text-[#9A8880] space-y-1.5">
+                <p className="font-bold text-[#111008]">📌 URLの取得方法</p>
+                <p>① Googleマップでお店を検索して開く</p>
+                <p>② 「共有」ボタン（または ⋮ メニュー）をタップ</p>
+                <p>③ 「リンクをコピー」で取得したURLを貼り付ける</p>
               </div>
             </>
-          )}
-
-          {/* 検索中 */}
-          {phase === 'searching' && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
-              <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm font-medium text-[#111008]">お店を検索中...</p>
-            </div>
-          )}
-
-          {/* 候補確認 */}
-          {phase === 'confirming' && candidate && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-5">
-              <p className="text-sm font-bold text-[#111008] mb-4">このお店で間違いないですか？</p>
-              <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-base font-bold text-[#111008]">{candidate.shopName}</p>
-                <p className="text-sm text-[#9A8880] mt-1">{candidate.address}</p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={reset}
-                  className="flex-1 flex items-center justify-center gap-1.5 border border-[#EDE5DF] rounded-xl py-3 text-sm text-[#9A8880] hover:border-[#111008] hover:text-[#111008] transition-colors"
-                >
-                  <RotateCcw size={14} />
-                  違う
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  className="flex-1 bg-[#E8320A] text-white rounded-xl py-3 text-sm font-medium hover:bg-[#c92b09] transition-colors"
-                >
-                  はい、このお店です
-                </button>
-              </div>
-            </div>
           )}
 
           {/* 取得中 */}
