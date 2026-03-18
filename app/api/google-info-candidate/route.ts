@@ -26,6 +26,9 @@ export async function POST(req: Request) {
 
     const e164 = toE164(phone.trim())
 
+    // 国内形式（ハイフン付き）に正規化
+    const localPhone = phone.trim().replace(/\D/g, '').replace(/^(\d{2,4})(\d{2,4})(\d{4})$/, '$1-$2-$3')
+
     // 新しいPlaces API (v1) を使用
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
@@ -34,7 +37,7 @@ export async function POST(req: Request) {
         'X-Goog-Api-Key': PLACES_API_KEY,
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress',
       },
-      body: JSON.stringify({ textQuery: e164, languageCode: 'ja' }),
+      body: JSON.stringify({ textQuery: localPhone, languageCode: 'ja', regionCode: 'JP' }),
     })
 
     const data = await res.json()
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
     if (!data.places?.length) {
       return NextResponse.json({
         success: false,
-        error: `[DEBUG] status=${res.status} e164=${e164} body=${JSON.stringify(data)}`,
+        error: `[DEBUG] status=${res.status} local=${localPhone} e164=${e164} body=${JSON.stringify(data)}`,
       })
     }
 
