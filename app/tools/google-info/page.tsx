@@ -206,17 +206,28 @@ export default function GoogleInfoPage() {
               <CopyField label="Place ID" value={result.placeId} />
               <CopyField label="Google口コミURL" value={result.reviewUrl} />
 
-              {result.mapsUrl && (
+              <div className="flex gap-3">
+                {result.mapsUrl && (
+                  <a
+                    href={result.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-[#E8320A] hover:underline"
+                  >
+                    <ExternalLink size={12} />
+                    Googleマップで確認する
+                  </a>
+                )}
                 <a
-                  href={result.mapsUrl}
+                  href="/setup"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-[#E8320A] hover:underline"
+                  className="flex items-center gap-1.5 text-xs text-[#9A8880] hover:text-[#111008] hover:underline"
                 >
                   <ExternalLink size={12} />
-                  Googleマップで確認する
+                  店舗プロフィールを編集する
                 </a>
-              )}
+              </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
                 取得したPlace IDとGoogle口コミURLは、店舗プロフィール設定画面から登録できます。
