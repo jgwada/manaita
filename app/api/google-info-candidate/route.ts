@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     if (!data.places?.length) {
       return NextResponse.json({
         success: false,
-        error: `[DEBUG] e164=${e164} places=${JSON.stringify(data.places)} error=${JSON.stringify(data.error ?? null)}`,
+        error: `[DEBUG] status=${res.status} e164=${e164} body=${JSON.stringify(data)}`,
       })
     }
 
