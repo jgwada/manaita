@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [researchingId, setResearchingId] = useState<string | null>(null)
   const [researchedId, setResearchedId] = useState<string | null>(null)
+  const [researchError, setResearchError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -35,6 +36,7 @@ export default function AdminPage() {
   const handleReResearch = async (shopId: string) => {
     setResearchingId(shopId)
     setResearchedId(null)
+    setResearchError(null)
     try {
       const res = await fetch('/api/admin/research-shop', {
         method: 'POST',
@@ -45,7 +47,11 @@ export default function AdminPage() {
       if (json.success) {
         setResearchedId(shopId)
         setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research } : s))
+      } else {
+        setResearchError(json.error || 'リサーチに失敗しました')
       }
+    } catch (e) {
+      setResearchError('タイムアウトまたはネットワークエラーが発生しました')
     } finally {
       setResearchingId(null)
     }
@@ -79,6 +85,12 @@ export default function AdminPage() {
               <span className="text-sm font-medium text-[#111008]">ユーザーを発行</span>
             </button>
           </div>
+
+          {researchError && (
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              ⚠️ {researchError}
+            </div>
+          )}
 
           <h2 className="text-lg font-bold text-[#111008] mb-3 flex items-center gap-2">
             <Store size={18} />
