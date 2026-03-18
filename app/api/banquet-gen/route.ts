@@ -13,13 +13,15 @@ export async function POST(req: Request) {
     const shopProfile: ShopProfile = JSON.parse(formData.get('shopProfile') as string)
     const priceMin = formData.get('priceMin') as string ?? '5000'
     const priceMax = formData.get('priceMax') as string ?? '8000'
+    const ingredientMode = (formData.get('ingredientMode') as 'existing' | 'additional') ?? 'additional'
 
     let messageContent: Anthropic.MessageParam['content']
     const promptText = buildBanquetGenPrompt(
       shopProfile,
       inputType === 'text' ? (formData.get('menuText') as string ?? '') : null,
       priceMin,
-      priceMax
+      priceMax,
+      ingredientMode
     )
 
     if (inputType === 'text') {

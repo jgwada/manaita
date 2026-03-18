@@ -41,6 +41,7 @@ type Plan = {
   profitPer: string
   profit10: string
   appeal: string
+  additionalIngredients: string[]
 }
 
 function extractField(text: string, label: string): string {
@@ -50,6 +51,14 @@ function extractField(text: string, label: string): string {
 
 function extractCourses(text: string): string[] {
   const block = text.match(/コース構成：([\s\S]*?)(?=推奨売価|$)/)?.[1] ?? ''
+  return block.split('\n')
+    .map(l => l.replace(/^・/, '').trim())
+    .filter(Boolean)
+}
+
+function extractAdditionalIngredients(text: string): string[] {
+  const block = text.match(/追加食材：([\s\S]*?)(?=【プラン\d】|$)/)?.[1] ?? ''
+  if (!block.trim() || block.includes('追加食材なし')) return []
   return block.split('\n')
     .map(l => l.replace(/^・/, '').trim())
     .filter(Boolean)
@@ -72,6 +81,7 @@ function parsePlans(raw: string): Plan[] {
       profitPer: extractField(content, '一人あたり粗利'),
       profit10: extractField(content, '10名での粗利'),
       appeal: extractField(content, '売りポイント'),
+      additionalIngredients: extractAdditionalIngredients(content),
     })
   }
   return plans
@@ -175,6 +185,18 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
             <p className="text-sm text-[#111008] leading-relaxed">{plan.appeal}</p>
           </div>
         )}
+
+        {/* 追加食材 */}
+        {plan.additionalIngredients.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs font-bold text-amber-700 mb-2">🛒 追加食材</p>
+            <ul className="space-y-1">
+              {plan.additionalIngredients.map((item, i) => (
+                <li key={i} className="text-xs text-amber-800 leading-relaxed">・{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -183,6 +205,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 export default function BanquetGenPage() {
   const { shopProfile } = useAppStore()
   const [method, setMethod] = useState<InputMethod>('pdf')
+  const [ingredientMode, setIngredientMode] = useState<'existing' | 'additional'>('additional')
   const [file, setFile] = useState<File | null>(null)
   const [menuText, setMenuText] = useState('')
   const [priceMin, setPriceMin] = useState('5000')
@@ -240,6 +263,7 @@ export default function BanquetGenPage() {
       formData.append('shopProfile', JSON.stringify(shopProfile))
       formData.append('priceMin', priceMin)
       formData.append('priceMax', priceMax)
+      formData.append('ingredientMode', ingredientMode)
       if (method === 'text') {
         formData.append('menuText', menuText)
       } else if (file) {
@@ -332,6 +356,37 @@ export default function BanquetGenPage() {
             </div>
           </div>
 
+          {/* 食材モード選択 */}
+          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111008] mb-3">食材の使い方</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIngredientMode('existing')}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${
+                  ingredientMode === 'existing'
+                    ? 'border-[#E8320A] bg-red-50 text-[#E8320A]'
+                    : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'
+                }`}
+              >
+                <span className="text-lg">🍽️</span>
+                <span className="text-xs font-bold">既存食材のみ</span>
+                <span className="text-[10px] opacity-70">今あるもので組む</span>
+              </button>
+              <button
+                onClick={() => setIngredientMode('additional')}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${
+                  ingredientMode === 'additional'
+                    ? 'border-[#E8320A] bg-red-50 text-[#E8320A]'
+                    : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'
+                }`}
+              >
+                <span className="text-lg">🛒</span>
+                <span className="text-xs font-bold">追加食材もOK</span>
+                <span className="text-[10px] opacity-70">買い足しも提案</span>
+              </button>
+            </div>
+          </div>
+
           {/* 入力方法選択 */}
           <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
             <p className="text-sm font-bold text-[#111008] mb-3">メニューの入力方法</p>
@@ -393,6 +448,7 @@ export default function BanquetGenPage() {
                         {method === 'pdf' ? 'PDFをアップロード' : '写真を選択・撮影'}
                       </p>
                       <p className="text-xs text-[#9A8880] mt-1">タップしてファイルを選ぶ</p>
+                      <p className="text-[10px] text-amber-600 mt-1">※上限 4MB まで</p>
                     </div>
                   </div>
                 )}
