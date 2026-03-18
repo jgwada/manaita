@@ -63,7 +63,7 @@ export default function HomePage() {
                 <p className="text-xs text-[#9A8880]">{shopProfile.area} · {shopProfile.industry}</p>
               </div>
               <button onClick={() => router.push('/setup')} className="text-xs text-[#E8320A] hover:underline">
-                編集
+                店舗プロフィール設定
               </button>
             </div>
           )}

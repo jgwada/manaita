@@ -22,6 +22,7 @@ export default function SetupPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [placeIdOpen, setPlaceIdOpen] = useState(false)
 
   useEffect(() => {
     if (shopProfile) {
@@ -102,10 +103,34 @@ export default function SetupPage() {
           <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-[#EDE5DF] rounded-xl p-6">
             {fields.map((field) => (
               <div key={field.key}>
-                <label className="block text-sm font-medium text-[#111008] mb-1">
-                  {field.label}
-                  {field.required && <span className="text-[#E8320A] ml-1">*</span>}
-                </label>
+                <div className="flex items-center gap-2 mb-1">
+                  <label className="text-sm font-medium text-[#111008]">
+                    {field.label}
+                    {field.required && <span className="text-[#E8320A] ml-1">*</span>}
+                  </label>
+                  {field.key === 'placeId' && (
+                    <button
+                      type="button"
+                      onClick={() => setPlaceIdOpen(v => !v)}
+                      className="text-[10px] text-[#E8320A] underline hover:opacity-70"
+                    >
+                      GoogleプレイスIDとは？
+                    </button>
+                  )}
+                </div>
+                {field.key === 'placeId' && placeIdOpen && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-2 text-xs text-blue-800 leading-relaxed space-y-2">
+                    <p className="font-bold">Google Place IDとは</p>
+                    <p>Googleマップ上の各店舗に割り当てられた固有のIDです。口コミの自動取得に使用します。</p>
+                    <p className="font-bold mt-1">確認方法</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Googleマップで店舗を検索して開く</li>
+                      <li>ブラウザのURLを確認する</li>
+                      <li>URL内の <span className="font-mono bg-blue-100 px-1 rounded">1s0x...</span> または <span className="font-mono bg-blue-100 px-1 rounded">ChIJ...</span> から始まる文字列がPlace ID</li>
+                    </ol>
+                    <p className="text-blue-600">※わからない場合は運営者にお問い合わせください</p>
+                  </div>
+                )}
                 <input
                   type="text"
                   value={form[field.key as keyof typeof form]}
