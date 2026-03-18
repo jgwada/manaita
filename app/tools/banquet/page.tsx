@@ -199,6 +199,7 @@ export default function BanquetGenPage() {
   const { shopProfile } = useAppStore()
   const [ingredientMode, setIngredientMode] = useState<'existing' | 'additional'>('additional')
   const [files, setFiles] = useState<File[]>([])
+  const [fileError, setFileError] = useState('')
   const [menuText, setMenuText] = useState('')
   const [wishes, setWishes] = useState('')
   const [priceMin, setPriceMin] = useState('5000')
@@ -214,13 +215,15 @@ export default function BanquetGenPage() {
   const addFiles = (newFiles: FileList | null) => {
     if (!newFiles) return
     const valid: File[] = []
+    const errors: string[] = []
     for (const f of Array.from(newFiles)) {
       if (f.size > 4 * 1024 * 1024) {
-        setError(`「${f.name}」は4MBを超えています。圧縮してから追加してください。`)
+        errors.push(`「${f.name}」は4MBを超えています。圧縮してから追加してください。`)
         continue
       }
       valid.push(f)
     }
+    setFileError(errors.join('\n'))
     setFiles(prev => [...prev, ...valid])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -391,6 +394,12 @@ export default function BanquetGenPage() {
               <p className="text-xs font-bold text-[#111008]">ファイルを追加</p>
               <p className="text-[10px] text-[#9A8880]">タップ または ドラッグ＆ドロップ</p>
             </div>
+
+            {fileError && (
+              <div className="mt-2 bg-red-50 text-[#E8320A] text-xs px-3 py-2.5 rounded-xl whitespace-pre-wrap">
+                {fileError}
+              </div>
+            )}
           </div>
 
           {/* テキスト入力 */}
