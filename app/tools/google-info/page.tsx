@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { Copy, CheckCircle, ExternalLink, RotateCcw } from 'lucide-react'
+import { useAppStore } from '@/store'
 
 type Result = { shopName?: string; address?: string; placeId: string; reviewUrl: string; mapsUrl: string }
 type Phase = 'input' | 'generating' | 'done'
@@ -42,10 +44,18 @@ function CopyField({ label, value }: { label: string; value: string }) {
 }
 
 export default function GoogleInfoPage() {
+  const router = useRouter()
+  const { user, shopProfile } = useAppStore()
   const [phase, setPhase] = useState<Phase>('input')
   const [mapsUrl, setMapsUrl] = useState('')
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+
+  // adminが店舗を閲覧中は同一タブで開く（新タブではZustand状態がリセットされるため）
+  const isAdminViewingShop = user?.role === 'admin' && shopProfile !== null
+  const setupLinkProps = isAdminViewingShop
+    ? { onClick: () => router.push('/setup'), target: undefined, rel: undefined }
+    : { href: '/setup', target: '_blank', rel: 'noopener noreferrer' }
 
   const reset = () => {
     setPhase('input')
@@ -165,15 +175,13 @@ export default function GoogleInfoPage() {
                     Googleマップで確認する
                   </a>
                 )}
-                <a
-                  href="/setup"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  {...setupLinkProps}
                   className="flex items-center gap-1.5 text-xs text-[#9A8880] hover:text-[#111008] hover:underline"
                 >
                   <ExternalLink size={12} />
                   店舗プロフィールを編集する
-                </a>
+                </button>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
