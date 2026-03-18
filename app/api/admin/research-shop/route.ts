@@ -39,9 +39,10 @@ export async function POST(req: Request) {
 
 ${shopContext(shopProfile)}
 
-【重要】Web検索はちょうど2回だけ実行してください。それ以上は絶対に行わないこと。
+【重要】Web検索はちょうど3回だけ実行してください。それ以上は絶対に行わないこと。
 1回目：「${shopProfile.name} ${shopProfile.area} 口コミ 食べログ」で検索
 2回目：「${shopProfile.name} ${shopProfile.area} Google 評判」で検索
+3回目：「${shopProfile.name} ${shopProfile.area} Instagram」で検索
 
 取得した情報から以下を簡潔にまとめてください（各項目3行以内）：
 
@@ -49,7 +50,8 @@ ${shopContext(shopProfile)}
 2. よく言及されるポジティブなポイント
 3. よく言及される改善点・ネガティブな意見
 4. 代表メニュー・料理の特徴（口コミから読み取れるもの）
-5. 強み・差別化ポイント
+5. Instagram・SNSの状況（アカウントの有無・投稿の雰囲気・人気コンテンツ）
+6. 強み・差別化ポイント
 
 情報がない項目は「情報なし」と記載。前置き・後置き不要。箇条書きで出力。
 `
