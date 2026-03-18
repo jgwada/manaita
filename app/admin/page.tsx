@@ -5,14 +5,42 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
-import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail } from 'lucide-react'
+import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail, LogIn } from 'lucide-react'
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
 type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
 
 export default function AdminPage() {
   const router = useRouter()
-  const { user } = useAppStore()
+  const { user, setShopProfile } = useAppStore()
+  const [enteringShopId, setEnteringShopId] = useState<string | null>(null)
+
+  const handleEnterShop = async (shopId: string) => {
+    setEnteringShopId(shopId)
+    try {
+      const res = await fetch(`/api/admin/shops/${shopId}`)
+      const json = await res.json()
+      if (json.success && json.shop) {
+        const s = json.shop
+        setShopProfile({
+          id: s.id,
+          name: s.name,
+          area: s.area,
+          industry: s.industry,
+          priceRange: s.price_range,
+          seats: s.seats,
+          googleReviewUrl: s.google_review_url,
+          placeId: s.place_id,
+          lineOfficialUrl: s.line_official_url,
+          researchCache: s.research_cache,
+          createdAt: s.created_at,
+        })
+        router.push('/')
+      }
+    } finally {
+      setEnteringShopId(null)
+    }
+  }
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
   const [researchingId, setResearchingId] = useState<string | null>(null)
@@ -166,7 +194,18 @@ export default function AdminPage() {
                 <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl overflow-hidden">
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-[#111008]">{shop.name}</p>
+                      <button
+                        onClick={() => handleEnterShop(shop.id)}
+                        disabled={enteringShopId === shop.id}
+                        className="font-medium text-[#111008] hover:text-[#E8320A] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        {enteringShopId === shop.id ? (
+                          <RefreshCw size={13} className="animate-spin" />
+                        ) : (
+                          <LogIn size={13} />
+                        )}
+                        {shop.name}
+                      </button>
                       <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
                       <p className="text-xs mt-0.5">
                         {shop.research_cache
