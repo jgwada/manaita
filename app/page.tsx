@@ -22,7 +22,7 @@ const phase1Tools = [
 ]
 
 const phase2Tools = [
-  { icon: FileText, name: 'メニュー表・POP', description: '料理のキャッチコピーと説明文を自動生成', href: '/tools/menu' },
+  { icon: FileText, name: 'メニュー表・POP', description: '料理のキャッチコピーと説明文を自動生成', href: '/tools/menu', disabled: true },
   { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual' },
   { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', disabled: true },
   { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', disabled: true },
