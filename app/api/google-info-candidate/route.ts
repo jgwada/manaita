@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     if (!data.places?.length) {
       return NextResponse.json({
         success: false,
-        error: `[DEBUG] status=${res.status} local=${localPhone} e164=${e164} body=${JSON.stringify(data)}`,
+        error: '該当する店舗が見つかりませんでした。Googleビジネスプロフィールに登録された電話番号を確認してください。',
       })
     }
 
