@@ -44,8 +44,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function GoogleInfoPage() {
   const [phase, setPhase] = useState<Phase>('input')
-  const [tabelogUrl, setTabelogUrl] = useState('')
-  const [freeWord, setFreeWord] = useState('')
+  const [phone, setPhone] = useState('')
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
@@ -57,34 +56,8 @@ export default function GoogleInfoPage() {
     setError('')
   }
 
-  const callApi = async (body: object): Promise<void> => {
-    const res = await fetch('/api/google-info', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    const json = await res.json()
-    if (!json.success) {
-      setError(json.error || '取得に失敗しました。')
-      setPhase('input')
-    } else {
-      setResult(json)
-      setPhase('done')
-    }
-  }
-
-  // 食べログURL → 一発生成
-  const handleTabelogGenerate = async () => {
-    if (!tabelogUrl.trim()) return
-    setError('')
-    setResult(null)
-    setPhase('generating')
-    await callApi({ tabelogUrl: tabelogUrl.trim() })
-  }
-
-  // フリーワード → 候補検索
-  const handleFreeWordSearch = async () => {
-    if (!freeWord.trim()) return
+  const handleSearch = async () => {
+    if (!phone.trim()) return
     setError('')
     setCandidate(null)
     setPhase('searching')
@@ -93,7 +66,7 @@ export default function GoogleInfoPage() {
       const res = await fetch('/api/google-info-candidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: freeWord.trim() }),
+        body: JSON.stringify({ phone: phone.trim() }),
       })
       const json = await res.json()
       if (!json.success) {
@@ -109,11 +82,28 @@ export default function GoogleInfoPage() {
     }
   }
 
-  // 候補確認後 → Place ID取得（候補検索時に既に取得済み）
   const handleConfirm = async () => {
     if (!candidate) return
     setPhase('generating')
-    await callApi({ placeId: candidate.placeId })
+
+    try {
+      const res = await fetch('/api/google-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId: candidate.placeId }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setError(json.error || '取得に失敗しました。')
+        setPhase('input')
+      } else {
+        setResult({ ...json, shopName: candidate.shopName, address: candidate.address })
+        setPhase('done')
+      }
+    } catch {
+      setError('取得に失敗しました。もう一度お試しください。')
+      setPhase('input')
+    }
   }
 
   return (
@@ -136,61 +126,33 @@ export default function GoogleInfoPage() {
                 </div>
               )}
 
-              {/* 食べログURL */}
               <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111008] mb-0.5">食べログURLで取得</p>
-                <p className="text-xs text-[#9A8880] mb-3">URLがあれば一発で取得できます</p>
+                <p className="text-sm font-bold text-[#111008] mb-0.5">電話番号で検索</p>
+                <p className="text-xs text-[#9A8880] mb-3">Googleビジネスプロフィールにご登録の電話番号を入力してください</p>
                 <input
-                  type="url"
-                  value={tabelogUrl}
-                  onChange={e => setTabelogUrl(e.target.value)}
-                  placeholder="https://tabelog.com/osaka/A2701/..."
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSearch() } }}
+                  placeholder="例：075-123-4567"
                   className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
                 />
                 <button
-                  onClick={handleTabelogGenerate}
-                  disabled={!tabelogUrl.trim()}
+                  onClick={handleSearch}
+                  disabled={!phone.trim()}
                   className="w-full bg-[#E8320A] text-white rounded-xl py-3 font-medium text-sm hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  🔍 URLから取得する
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 h-px bg-[#EDE5DF]" />
-                <span className="text-xs text-[#9A8880]">または</span>
-                <div className="flex-1 h-px bg-[#EDE5DF]" />
-              </div>
-
-              {/* フリーワード */}
-              <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111008] mb-0.5">店名で検索</p>
-                <p className="text-xs text-[#9A8880] mb-3">食べログがない場合は店名で検索できます</p>
-                <input
-                  type="text"
-                  value={freeWord}
-                  onChange={e => setFreeWord(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleFreeWordSearch() } }}
-                  placeholder="例：焼鳥 鳥よし 草津（Shift+Enterで検索）"
-                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
-                />
-                <button
-                  onClick={handleFreeWordSearch}
-                  disabled={!freeWord.trim()}
-                  className="w-full bg-[#111008] text-white rounded-xl py-3 font-medium text-sm hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  🔎 店名で検索する
+                  🔍 電話番号で検索する
                 </button>
               </div>
             </>
           )}
 
-          {/* 候補検索中 */}
+          {/* 検索中 */}
           {phase === 'searching' && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
-              <div className="w-8 h-8 border-4 border-[#111008] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm font-medium text-[#111008]">お店を検索中...</p>
-              <p className="text-xs text-[#9A8880] mt-1">「{freeWord}」を検索しています</p>
             </div>
           )}
 
