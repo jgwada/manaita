@@ -4,50 +4,62 @@ import { NextResponse } from 'next/server'
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
-async function extractPlaceId(inputUrl: string): Promise<{ placeId: string | null; debugUrl: string }> {
-  let url = inputUrl.trim()
-  let debugUrl = url
-
-  // 短縮URL・共有URLはリダイレクトを追う
-  if (
-    url.includes('maps.app.goo.gl') ||
-    url.includes('goo.gl/maps') ||
-    url.includes('share.google') ||
-    url.includes('g.co/')
-  ) {
-    try {
-      const res = await fetch(url, { redirect: 'follow' })
-      url = res.url
-      debugUrl = url
-    } catch {
-      return { placeId: null, debugUrl }
-    }
-  }
-
-  // place_id=ChIJ... クエリパラメータ
+/** URLをリダイレクト追跡して最終URLを返す */
+async function followRedirect(url: string): Promise<string> {
   try {
-    const parsed = new URL(url)
-    const placeId = parsed.searchParams.get('place_id')
-    if (placeId) return { placeId, debugUrl }
-  } catch { /* invalid URL */ }
+    const res = await fetch(url, { redirect: 'follow' })
+    return res.url
+  } catch {
+    return url
+  }
+}
 
-  // data=...!1sChIJ... または data=...!4sChIJ... パターン
+/** Google Maps URL から Place ID (ChIJ...) を直接抽出 */
+function extractPlaceIdFromUrl(url: string): string | null {
+  // place_id= クエリパラメータ
+  try {
+    const placeId = new URL(url).searchParams.get('place_id')
+    if (placeId) return placeId
+  } catch { /* ignore */ }
+
+  // data= 内の !1s / !4s に続く ChIJ...
   const dataMatch = url.match(/[!&](?:1s|4s)(ChIJ[a-zA-Z0-9_-]+)/)
-  if (dataMatch) return { placeId: dataMatch[1], debugUrl }
+  if (dataMatch) return dataMatch[1]
 
-  // URLのどこかに ChIJ... が含まれる場合
+  // URL中に ChIJ... が存在する場合
   const chijMatch = url.match(/ChIJ[a-zA-Z0-9_-]{10,}/)
-  if (chijMatch) return { placeId: chijMatch[0], debugUrl }
+  if (chijMatch) return chijMatch[0]
 
-  return { placeId: null, debugUrl }
+  return null
+}
+
+/** google.com/search の q パラメータから店名を取り出してPlaces APIで検索 */
+async function searchByShopNameFromSearchUrl(searchUrl: string): Promise<string | null> {
+  try {
+    const q = new URL(searchUrl).searchParams.get('q')
+    if (!q) return null
+
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': PLACES_API_KEY!,
+        'X-Goog-FieldMask': 'places.id',
+      },
+      body: JSON.stringify({ textQuery: q, languageCode: 'ja', regionCode: 'JP' }),
+    })
+    const data = await res.json()
+    return data.places?.[0]?.id ?? null
+  } catch {
+    return null
+  }
 }
 
 async function getPlaceDetails(placeId: string): Promise<{ name: string; address: string } | null> {
-  if (!PLACES_API_KEY) return null
   try {
     const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
       headers: {
-        'X-Goog-Api-Key': PLACES_API_KEY,
+        'X-Goog-Api-Key': PLACES_API_KEY!,
         'X-Goog-FieldMask': 'displayName,formattedAddress',
       },
     })
@@ -72,14 +84,33 @@ export async function POST(req: Request) {
     let placeId = body.placeId ?? ''
 
     if (body.mapsUrl) {
-      const { placeId: extracted, debugUrl } = await extractPlaceId(body.mapsUrl)
-      if (!extracted) {
+      let url = body.mapsUrl.trim()
+
+      // 短縮URL・共有URLはリダイレクトを追う
+      const needsRedirect =
+        url.includes('maps.app.goo.gl') ||
+        url.includes('goo.gl/maps') ||
+        url.includes('share.google') ||
+        url.includes('g.co/')
+
+      if (needsRedirect) {
+        url = await followRedirect(url)
+      }
+
+      // Google Maps URL から直接 Place ID を抽出
+      placeId = extractPlaceIdFromUrl(url) ?? ''
+
+      // ビジネスプロフィールの共有URL（google.com/search に飛ぶ場合）は店名で検索
+      if (!placeId && url.includes('google.com/search')) {
+        placeId = (await searchByShopNameFromSearchUrl(url)) ?? ''
+      }
+
+      if (!placeId) {
         return NextResponse.json({
           success: false,
-          error: `[DEBUG] 取得失敗。リダイレクト後URL=${debugUrl}`,
+          error: 'URLからPlace IDを取得できませんでした。GoogleマップまたはGoogleビジネスプロフィールの共有URLを確認してください。',
         })
       }
-      placeId = extracted
     }
 
     if (!placeId) {
