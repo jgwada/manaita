@@ -4,7 +4,9 @@ import { useState } from 'react'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Copy, CheckCircle, ExternalLink } from 'lucide-react'
+import { Copy, CheckCircle, ExternalLink, RotateCcw } from 'lucide-react'
+
+type Candidate = { shopName: string; address: string; area: string }
 
 type Result = {
   shopName: string
@@ -12,6 +14,8 @@ type Result = {
   placeId: string
   mapsUrl: string
 }
+
+type Phase = 'input' | 'searching' | 'confirming' | 'generating' | 'done'
 
 function parseResult(raw: string): Result {
   const get = (label: string) =>
@@ -57,24 +61,73 @@ function CopyField({ label, value }: { label: string; value: string }) {
 }
 
 export default function GoogleInfoPage() {
+  const [phase, setPhase] = useState<Phase>('input')
   const [tabelogUrl, setTabelogUrl] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [freeWord, setFreeWord] = useState('')
+  const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
 
-  const handleGenerate = async () => {
-    if (!tabelogUrl.trim()) return
-    setLoading(true)
+  const reset = () => {
+    setPhase('input')
+    setCandidate(null)
     setResult(null)
     setError('')
+  }
 
+  // 食べログURL → 一発生成
+  const handleTabelogGenerate = async () => {
+    if (!tabelogUrl.trim()) return
+    setError('')
+    setResult(null)
+    setPhase('generating')
+    await generate({ tabelogUrl: tabelogUrl.trim() })
+  }
+
+  // フリーワード → 候補検索
+  const handleFreeWordSearch = async () => {
+    if (!freeWord.trim()) return
+    setError('')
+    setCandidate(null)
+    setPhase('searching')
+
+    try {
+      const res = await fetch('/api/google-info-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: freeWord.trim() }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setError(json.error === 'RATE_LIMIT'
+          ? 'APIのレート制限に達しました。1分ほど待ってから再試行してください。'
+          : (json.error || '検索に失敗しました。'))
+        setPhase('input')
+      } else {
+        setCandidate(json.candidate)
+        setPhase('confirming')
+      }
+    } catch {
+      setError('検索に失敗しました。もう一度お試しください。')
+      setPhase('input')
+    }
+  }
+
+  // 候補確認後 → 最終生成
+  const handleConfirm = async () => {
+    if (!candidate) return
+    setPhase('generating')
+    await generate({ shopName: candidate.shopName, area: candidate.area })
+  }
+
+  // 共通：Place ID・口コミURL取得
+  const generate = async (body: { tabelogUrl?: string; shopName?: string; area?: string }) => {
     try {
       const response = await fetch('/api/google-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabelogUrl: tabelogUrl.trim() }),
+        body: JSON.stringify(body),
       })
-
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let raw = ''
@@ -83,18 +136,19 @@ export default function GoogleInfoPage() {
         if (done) break
         raw += decoder.decode(value)
       }
-
       if (raw.startsWith('ERROR:RATE_LIMIT')) {
         setError('APIのレート制限に達しました。1分ほど待ってから再試行してください。')
+        setPhase('input')
       } else if (raw.startsWith('ERROR:')) {
         setError(raw.replace('ERROR:', '').trim())
+        setPhase('input')
       } else {
         setResult(parseResult(raw))
+        setPhase('done')
       }
     } catch {
       setError('取得に失敗しました。もう一度お試しください。')
-    } finally {
-      setLoading(false)
+      setPhase('input')
     }
   }
 
@@ -105,48 +159,124 @@ export default function GoogleInfoPage() {
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
             title="Google情報メーカー"
-            description="食べログURLからGoogle口コミURLとPlace IDを自動取得"
+            description="Google口コミURLとPlace IDを自動取得"
             backHref="/"
           />
 
-          <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-            <label className="block text-sm font-medium text-[#111008] mb-2">
-              食べログURL <span className="text-[#E8320A]">*</span>
-            </label>
-            <input
-              type="url"
-              value={tabelogUrl}
-              onChange={e => setTabelogUrl(e.target.value)}
-              placeholder="https://tabelog.com/osaka/A2701/..."
-              className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
-            />
-          </div>
+          {/* ── 入力フェーズ ── */}
+          {phase === 'input' && (
+            <>
+              {error && (
+                <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4">
+                  {error}
+                </div>
+              )}
 
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !tabelogUrl.trim()}
-            className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-medium text-sm hover:bg-[#c92b09] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
-          >
-            {loading ? '検索中...' : '🔍 Google情報を取得する'}
-          </button>
+              {/* 食べログURL */}
+              <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
+                <p className="text-sm font-bold text-[#111008] mb-0.5">食べログURLで取得</p>
+                <p className="text-xs text-[#9A8880] mb-3">URLがあれば一発で取得できます</p>
+                <input
+                  type="url"
+                  value={tabelogUrl}
+                  onChange={e => setTabelogUrl(e.target.value)}
+                  placeholder="https://tabelog.com/osaka/A2701/..."
+                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
+                />
+                <button
+                  onClick={handleTabelogGenerate}
+                  disabled={!tabelogUrl.trim()}
+                  className="w-full bg-[#E8320A] text-white rounded-xl py-3 font-medium text-sm hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  🔍 URLから取得する
+                </button>
+              </div>
 
-          {loading && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-6 text-center mb-4">
+              {/* 区切り */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-[#EDE5DF]" />
+                <span className="text-xs text-[#9A8880]">または</span>
+                <div className="flex-1 h-px bg-[#EDE5DF]" />
+              </div>
+
+              {/* フリーワード */}
+              <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
+                <p className="text-sm font-bold text-[#111008] mb-0.5">店名で検索</p>
+                <p className="text-xs text-[#9A8880] mb-3">食べログがない場合は店名で検索できます</p>
+                <input
+                  type="text"
+                  value={freeWord}
+                  onChange={e => setFreeWord(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleFreeWordSearch()}
+                  placeholder="例：焼鳥 鳥よし 草津"
+                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
+                />
+                <button
+                  onClick={handleFreeWordSearch}
+                  disabled={!freeWord.trim()}
+                  className="w-full bg-[#111008] text-white rounded-xl py-3 font-medium text-sm hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  🔎 店名で検索する
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── 候補検索中 ── */}
+          {phase === 'searching' && (
+            <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
+              <div className="w-8 h-8 border-4 border-[#111008] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm font-medium text-[#111008]">お店を検索中...</p>
+              <p className="text-xs text-[#9A8880] mt-1">Googleで「{freeWord}」を検索しています</p>
+            </div>
+          )}
+
+          {/* ── 候補確認 ── */}
+          {phase === 'confirming' && candidate && (
+            <div className="bg-white border border-[#EDE5DF] rounded-xl p-5">
+              <p className="text-sm font-bold text-[#111008] mb-4">このお店で間違いないですか？</p>
+
+              <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-4 mb-4">
+                <p className="text-base font-bold text-[#111008]">{candidate.shopName}</p>
+                <p className="text-sm text-[#9A8880] mt-1">{candidate.address}</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={reset}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-[#EDE5DF] rounded-xl py-3 text-sm text-[#9A8880] hover:border-[#111008] hover:text-[#111008] transition-colors"
+                >
+                  <RotateCcw size={14} />
+                  違う
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 bg-[#E8320A] text-white rounded-xl py-3 text-sm font-medium hover:bg-[#c92b09] transition-colors"
+                >
+                  はい、このお店です
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── 最終取得中 ── */}
+          {phase === 'generating' && (
+            <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
               <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm font-medium text-[#111008]">Googleマップを検索中...</p>
               <p className="text-xs text-[#9A8880] mt-1">Place IDを特定しています</p>
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4">
-              {error}
-            </div>
-          )}
-
-          {result && (
+          {/* ── 結果 ── */}
+          {phase === 'done' && result && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 space-y-3">
-              <p className="text-sm font-bold text-[#111008]">{result.shopName}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[#111008]">{result.shopName}</p>
+                <button onClick={reset} className="text-xs text-[#9A8880] hover:text-[#E8320A] flex items-center gap-1">
+                  <RotateCcw size={12} /> やり直す
+                </button>
+              </div>
 
               <CopyField label="Place ID" value={result.placeId} />
               <CopyField label="Google口コミURL" value={result.reviewUrl} />
