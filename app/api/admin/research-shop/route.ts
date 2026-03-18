@@ -54,7 +54,7 @@ ${shopContext(shopProfile)}
     let result = ''
     await callClaudeWithWebSearchStream(prompt, (text) => {
       result += text
-    })
+    }, 4000)
 
     await supabaseAdmin
       .from('shops')
@@ -65,6 +65,10 @@ ${shopContext(shopProfile)}
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('research-shop error:', msg)
-    return NextResponse.json({ success: false, error: msg })
+    const isRateLimit = msg.includes('rate_limit') || msg.includes('429')
+    return NextResponse.json({
+      success: false,
+      error: isRateLimit ? 'RATE_LIMIT' : msg
+    })
   }
 }

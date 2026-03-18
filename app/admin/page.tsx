@@ -17,6 +17,8 @@ export default function AdminPage() {
   const [researchingId, setResearchingId] = useState<string | null>(null)
   const [researchedId, setResearchedId] = useState<string | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [retryShopId, setRetryShopId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -33,10 +35,12 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  const handleReResearch = async (shopId: string) => {
+  const doResearch = async (shopId: string) => {
     setResearchingId(shopId)
     setResearchedId(null)
     setResearchError(null)
+    setRetryCountdown(null)
+    setRetryShopId(null)
     try {
       const res = await fetch('/api/admin/research-shop', {
         method: 'POST',
@@ -47,15 +51,31 @@ export default function AdminPage() {
       if (json.success) {
         setResearchedId(shopId)
         setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: json.research } : s))
+      } else if (json.error === 'RATE_LIMIT') {
+        setRetryShopId(shopId)
+        let count = 60
+        setRetryCountdown(count)
+        const timer = setInterval(() => {
+          count--
+          if (count <= 0) {
+            clearInterval(timer)
+            setRetryCountdown(null)
+            doResearch(shopId)
+          } else {
+            setRetryCountdown(count)
+          }
+        }, 1000)
       } else {
         setResearchError(json.error || 'リサーチに失敗しました')
       }
-    } catch (e) {
+    } catch {
       setResearchError('タイムアウトまたはネットワークエラーが発生しました')
     } finally {
       setResearchingId(null)
     }
   }
+
+  const handleReResearch = (shopId: string) => doResearch(shopId)
 
   return (
     <AuthGuard>
@@ -89,6 +109,11 @@ export default function AdminPage() {
           {researchError && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
               ⚠️ {researchError}
+            </div>
+          )}
+          {retryCountdown !== null && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+              ⏳ APIのレート制限に達しました。{retryCountdown}秒後に自動で再試行します...
             </div>
           )}
 
