@@ -1,69 +1,96 @@
-export const maxDuration = 60
+export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
-import { callClaudeWithWebSearchStream } from '@/lib/claude'
+
+const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
+
+async function getPlaceId(query: string): Promise<{ placeId: string; shopName: string; address: string } | null> {
+  const url = new URL('https://maps.googleapis.com/maps/api/place/findplacefromtext/json')
+  url.searchParams.set('input', query)
+  url.searchParams.set('inputtype', 'textquery')
+  url.searchParams.set('fields', 'place_id,name,formatted_address')
+  url.searchParams.set('language', 'ja')
+  url.searchParams.set('key', PLACES_API_KEY!)
+
+  const res = await fetch(url.toString())
+  const data = await res.json()
+
+  if (data.status !== 'OK' || !data.candidates?.length) return null
+
+  const place = data.candidates[0]
+  return {
+    placeId: place.place_id,
+    shopName: place.name,
+    address: place.formatted_address,
+  }
+}
+
+async function getShopNameFromTabelog(tabelogUrl: string): Promise<string> {
+  try {
+    const res = await fetch(tabelogUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' }
+    })
+    const html = await res.text()
+    const match = html.match(/<title[^>]*>([^<]+)<\/title>/)
+    if (match) {
+      // 「店名 - 食べログ」などの形式からお店名だけ取り出す
+      return match[1].split(/[-（【]/)[0].trim()
+    }
+  } catch { /* fallback */ }
+  return ''
+}
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as { tabelogUrl?: string; shopName?: string; area?: string }
+    if (!PLACES_API_KEY) {
+      return NextResponse.json({ success: false, error: 'Google Places APIキーが設定されていません。' })
+    }
 
-    const shopName = body.tabelogUrl
-      ? `食べログURL（${body.tabelogUrl}）のお店`
-      : `${body.shopName}（${body.area ?? ''}）`
+    const body = await req.json() as { tabelogUrl?: string; shopName?: string; area?: string; placeId?: string }
 
-    const searchHint = body.tabelogUrl
-      ? `まず食べログURLから店名と地域を読み取り、その情報でGoogleマップを検索してください。`
-      : `「${body.shopName} ${body.area ?? ''} Googleマップ」で検索してください。`
+    let query = ''
+    let confirmedPlaceId = body.placeId ?? ''
 
-    const fullPrompt = `
-あなたは飲食店のGoogle Place IDを調査する専門アシスタントです。
+    if (body.placeId) {
+      // 候補確認済み（Place IDが既に判明している場合）
+      confirmedPlaceId = body.placeId
+    } else if (body.tabelogUrl) {
+      // 食べログURLから店名を取得してPlaces APIで検索
+      const shopName = await getShopNameFromTabelog(body.tabelogUrl)
+      query = shopName || body.tabelogUrl
+    } else if (body.shopName) {
+      query = `${body.shopName} ${body.area ?? ''}`.trim()
+    }
 
-対象店舗：${shopName}
-
-【ミッション】この店舗のGoogle Place IDとGoogle口コミURLを特定してください。
-
-【検索手順】Web検索を最大3回まで実行してください。
-1回目：${searchHint}
-  → 検索結果のURLの中から「maps.google.com」「google.com/maps」を含むURLを探す
-  → URLの中に「ChIJ」で始まる文字列、または「!1s」の後に続く文字列があればそれがPlace ID
-2回目（必要な場合）：「${body.shopName ?? '店名'} ${body.area ?? ''} place_id OR ChIJ」で検索
-3回目（必要な場合）：「${body.shopName ?? '店名'} ${body.area ?? ''} google maps review」で検索
-
-【Place IDの見つけ方】
-- GoogleマップURLの例：https://www.google.com/maps/place/店名/@緯度,経度,/data=!4m6!3m5!1s【ここがPlace ID: ChIJで始まる】
-- 「!1s」の直後に来る「ChIJ」で始まる文字列がPlace ID
-- Place IDが見つかったら、Google口コミURLは https://search.google.com/local/writereview?placeid=【Place ID】 で生成できる
-
-以下の形式のみで出力してください（前置き・後置き・説明文は一切不要）：
-
-店名：（正式な店名）
-Place ID：（ChIJXXXXX... の形式。見つからない場合は「情報なし」）
-Google口コミURL：（https://search.google.com/local/writereview?placeid=XXXXX の形式。Place IDが不明なら「情報なし」）
-GoogleマップURL：（見つかったGoogleマップのURL。なければ「情報なし」）
-`
-
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          await callClaudeWithWebSearchStream(fullPrompt, (text) => {
-            controller.enqueue(encoder.encode(text))
-          }, 500)
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          const isRateLimit = msg.includes('rate_limit') || msg.includes('429')
-          controller.enqueue(encoder.encode(`ERROR:${isRateLimit ? 'RATE_LIMIT' : msg}`))
-        } finally {
-          controller.close()
-        }
+    if (!confirmedPlaceId && query) {
+      const result = await getPlaceId(query)
+      if (!result) {
+        return NextResponse.json({ success: false, error: '店舗が見つかりませんでした。店名や地域を変えてお試しください。' })
       }
-    })
+      confirmedPlaceId = result.placeId
+      return NextResponse.json({
+        success: true,
+        shopName: result.shopName,
+        address: result.address,
+        placeId: confirmedPlaceId,
+        reviewUrl: `https://search.google.com/local/writereview?placeid=${confirmedPlaceId}`,
+        mapsUrl: `https://www.google.com/maps/place/?q=place_id:${confirmedPlaceId}`,
+      })
+    }
 
-    return new Response(stream, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    })
+    if (confirmedPlaceId) {
+      return NextResponse.json({
+        success: true,
+        placeId: confirmedPlaceId,
+        reviewUrl: `https://search.google.com/local/writereview?placeid=${confirmedPlaceId}`,
+        mapsUrl: `https://www.google.com/maps/place/?q=place_id:${confirmedPlaceId}`,
+      })
+    }
+
+    return NextResponse.json({ success: false, error: '検索条件が不足しています。' })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
+    console.error('google-info error:', msg)
     return NextResponse.json({ success: false, error: msg })
   }
 }

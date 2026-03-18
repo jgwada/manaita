@@ -1,51 +1,44 @@
-export const maxDuration = 60
+export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
-import { callClaudeWithWebSearchStream } from '@/lib/claude'
+
+const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
 export async function POST(req: Request) {
   try {
     const { query } = await req.json() as { query: string }
 
-    const prompt = `
-あなたは飲食店情報の調査アシスタントです。
-
-以下のフリーワードで飲食店をGoogleで検索し、該当する店舗を1件だけ特定してください。
-
-検索ワード：${query}
-
-【重要】Web検索は1回だけ実行してください。
-
-以下の形式のみで出力してください（前置き・後置き・説明文は一切不要）：
-
-店名：（正式な店名）
-住所：（都道府県から始まる住所）
-エリア：（例：大阪府大阪市北区）
-`
-
-    let raw = ''
-    await callClaudeWithWebSearchStream(prompt, (text) => { raw += text }, 300)
-
-    const get = (label: string) =>
-      raw.match(new RegExp(`${label}：([^\n]+)`))?.[1]?.trim() ?? ''
-
-    const candidate = {
-      shopName: get('店名'),
-      address: get('住所'),
-      area: get('エリア'),
+    if (!PLACES_API_KEY) {
+      return NextResponse.json({ success: false, error: 'Google Places APIキーが設定されていません。' })
     }
 
-    if (!candidate.shopName) {
+    const url = new URL('https://maps.googleapis.com/maps/api/place/findplacefromtext/json')
+    url.searchParams.set('input', query)
+    url.searchParams.set('inputtype', 'textquery')
+    url.searchParams.set('fields', 'place_id,name,formatted_address')
+    url.searchParams.set('language', 'ja')
+    url.searchParams.set('key', PLACES_API_KEY)
+
+    const res = await fetch(url.toString())
+    const data = await res.json()
+
+    if (data.status !== 'OK' || !data.candidates?.length) {
       return NextResponse.json({ success: false, error: '店舗が見つかりませんでした。別のキーワードでお試しください。' })
     }
 
-    return NextResponse.json({ success: true, candidate })
+    const place = data.candidates[0]
+    return NextResponse.json({
+      success: true,
+      candidate: {
+        shopName: place.name,
+        address: place.formatted_address,
+        area: place.formatted_address,
+        placeId: place.place_id,
+      }
+    })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    const isRateLimit = msg.includes('rate_limit') || msg.includes('429')
-    return NextResponse.json({
-      success: false,
-      error: isRateLimit ? 'RATE_LIMIT' : '検索に失敗しました。もう一度お試しください。'
-    })
+    console.error('google-info-candidate error:', msg)
+    return NextResponse.json({ success: false, error: '検索に失敗しました。もう一度お試しください。' })
   }
 }

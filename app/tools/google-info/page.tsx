@@ -1,32 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { Copy, CheckCircle, ExternalLink, RotateCcw } from 'lucide-react'
 
-type Candidate = { shopName: string; address: string; area: string }
-
-type Result = {
-  shopName: string
-  reviewUrl: string
-  placeId: string
-  mapsUrl: string
-}
-
+type Candidate = { shopName: string; address: string; placeId: string }
+type Result = { shopName?: string; address?: string; placeId: string; reviewUrl: string; mapsUrl: string }
 type Phase = 'input' | 'searching' | 'confirming' | 'generating' | 'done'
-
-function parseResult(raw: string): Result {
-  const get = (label: string) =>
-    raw.match(new RegExp(`${label}：([^\n]+)`))?.[1]?.trim() ?? ''
-  return {
-    shopName: get('店名'),
-    reviewUrl: get('Google口コミURL'),
-    placeId: get('Place ID'),
-    mapsUrl: get('GoogleマップURL'),
-  }
-}
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false)
@@ -67,32 +49,28 @@ export default function GoogleInfoPage() {
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
-  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
-  const retryBodyRef = useRef<object | null>(null)
-  const retryCountRef = useRef(0)
-
-  useEffect(() => {
-    if (retryCountdown === null) return
-    if (retryCountdown <= 0) {
-      setRetryCountdown(null)
-      if (retryBodyRef.current) {
-        setPhase('generating')
-        generate(retryBodyRef.current as Parameters<typeof generate>[0])
-      }
-      return
-    }
-    const t = setTimeout(() => setRetryCountdown(v => (v ?? 1) - 1), 1000)
-    return () => clearTimeout(t)
-  }, [retryCountdown])
 
   const reset = () => {
     setPhase('input')
     setCandidate(null)
     setResult(null)
     setError('')
-    setRetryCountdown(null)
-    retryBodyRef.current = null
-    retryCountRef.current = 0
+  }
+
+  const callApi = async (body: object): Promise<void> => {
+    const res = await fetch('/api/google-info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const json = await res.json()
+    if (!json.success) {
+      setError(json.error || '取得に失敗しました。')
+      setPhase('input')
+    } else {
+      setResult(json)
+      setPhase('done')
+    }
   }
 
   // 食べログURL → 一発生成
@@ -101,7 +79,7 @@ export default function GoogleInfoPage() {
     setError('')
     setResult(null)
     setPhase('generating')
-    await generate({ tabelogUrl: tabelogUrl.trim() })
+    await callApi({ tabelogUrl: tabelogUrl.trim() })
   }
 
   // フリーワード → 候補検索
@@ -119,9 +97,7 @@ export default function GoogleInfoPage() {
       })
       const json = await res.json()
       if (!json.success) {
-        setError(json.error === 'RATE_LIMIT'
-          ? 'APIのレート制限に達しました。1分ほど待ってから再試行してください。'
-          : (json.error || '検索に失敗しました。'))
+        setError(json.error || '検索に失敗しました。')
         setPhase('input')
       } else {
         setCandidate(json.candidate)
@@ -133,51 +109,11 @@ export default function GoogleInfoPage() {
     }
   }
 
-  // 候補確認後 → 最終生成
+  // 候補確認後 → Place ID取得（候補検索時に既に取得済み）
   const handleConfirm = async () => {
     if (!candidate) return
     setPhase('generating')
-    await generate({ shopName: candidate.shopName, area: candidate.area })
-  }
-
-  // 共通：Place ID・口コミURL取得
-  const generate = async (body: { tabelogUrl?: string; shopName?: string; area?: string }) => {
-    try {
-      const response = await fetch('/api/google-info', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let raw = ''
-      while (true) {
-        const { done, value } = await reader!.read()
-        if (done) break
-        raw += decoder.decode(value)
-      }
-      if (raw.startsWith('ERROR:RATE_LIMIT')) {
-        if (retryCountRef.current < 2) {
-          retryCountRef.current += 1
-          retryBodyRef.current = body
-          setPhase('input')
-          setRetryCountdown(60)
-        } else {
-          setError('レート制限が続いています。しばらく時間をおいてから再試行してください。')
-          setPhase('input')
-          retryCountRef.current = 0
-        }
-      } else if (raw.startsWith('ERROR:')) {
-        setError(raw.replace('ERROR:', '').trim())
-        setPhase('input')
-      } else {
-        setResult(parseResult(raw))
-        setPhase('done')
-      }
-    } catch {
-      setError('取得に失敗しました。もう一度お試しください。')
-      setPhase('input')
-    }
+    await callApi({ placeId: candidate.placeId })
   }
 
   return (
@@ -191,14 +127,9 @@ export default function GoogleInfoPage() {
             backHref="/"
           />
 
-          {/* ── 入力フェーズ ── */}
+          {/* 入力フェーズ */}
           {phase === 'input' && (
             <>
-              {retryCountdown !== null && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm text-amber-700">
-                  ⏳ レート制限のため、{retryCountdown}秒後に自動で再試行します...
-                </div>
-              )}
               {error && (
                 <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4">
                   {error}
@@ -225,7 +156,6 @@ export default function GoogleInfoPage() {
                 </button>
               </div>
 
-              {/* 区切り */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-px bg-[#EDE5DF]" />
                 <span className="text-xs text-[#9A8880]">または</span>
@@ -255,25 +185,23 @@ export default function GoogleInfoPage() {
             </>
           )}
 
-          {/* ── 候補検索中 ── */}
+          {/* 候補検索中 */}
           {phase === 'searching' && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
               <div className="w-8 h-8 border-4 border-[#111008] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm font-medium text-[#111008]">お店を検索中...</p>
-              <p className="text-xs text-[#9A8880] mt-1">Googleで「{freeWord}」を検索しています</p>
+              <p className="text-xs text-[#9A8880] mt-1">「{freeWord}」を検索しています</p>
             </div>
           )}
 
-          {/* ── 候補確認 ── */}
+          {/* 候補確認 */}
           {phase === 'confirming' && candidate && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-5">
               <p className="text-sm font-bold text-[#111008] mb-4">このお店で間違いないですか？</p>
-
               <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-4 mb-4">
                 <p className="text-base font-bold text-[#111008]">{candidate.shopName}</p>
                 <p className="text-sm text-[#9A8880] mt-1">{candidate.address}</p>
               </div>
-
               <div className="flex gap-3">
                 <button
                   onClick={reset}
@@ -292,20 +220,22 @@ export default function GoogleInfoPage() {
             </div>
           )}
 
-          {/* ── 最終取得中 ── */}
+          {/* 取得中 */}
           {phase === 'generating' && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
               <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm font-medium text-[#111008]">Googleマップを検索中...</p>
-              <p className="text-xs text-[#9A8880] mt-1">Place IDを特定しています</p>
+              <p className="text-sm font-medium text-[#111008]">情報を取得中...</p>
             </div>
           )}
 
-          {/* ── 結果 ── */}
+          {/* 結果 */}
           {phase === 'done' && result && (
             <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[#111008]">{result.shopName}</p>
+                <div>
+                  {result.shopName && <p className="text-sm font-bold text-[#111008]">{result.shopName}</p>}
+                  {result.address && <p className="text-xs text-[#9A8880]">{result.address}</p>}
+                </div>
                 <button onClick={reset} className="text-xs text-[#9A8880] hover:text-[#E8320A] flex items-center gap-1">
                   <RotateCcw size={12} /> やり直す
                 </button>
@@ -314,7 +244,7 @@ export default function GoogleInfoPage() {
               <CopyField label="Place ID" value={result.placeId} />
               <CopyField label="Google口コミURL" value={result.reviewUrl} />
 
-              {result.mapsUrl && result.mapsUrl !== '情報なし' && (
+              {result.mapsUrl && (
                 <a
                   href={result.mapsUrl}
                   target="_blank"
