@@ -104,7 +104,7 @@ export default function SurveySettingsPage() {
                       type="text"
                       value={inputs[cat]}
                       onChange={e => setInputs(prev => ({ ...prev, [cat]: e.target.value }))}
-                      onKeyDown={e => e.key === 'Enter' && handleAdd(cat)}
+                      onKeyDown={e => e.key === 'Enter' && e.shiftKey && handleAdd(cat)}
                       placeholder={cat === 'menu' ? '例：ハラミ定食' : cat === 'good_point' ? '例：スタッフが親切' : '例：家族での食事'}
                       className="flex-1 border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
                     />
@@ -116,6 +116,7 @@ export default function SurveySettingsPage() {
                       <Plus size={16} />
                     </button>
                   </div>
+                  <p className="text-[10px] text-[#9A8880] mt-1">Shift + Enter で決定</p>
                 </div>
               ))}
             </div>

@@ -18,7 +18,7 @@ const phase1Tools = [
   { icon: Star, name: 'Google口コミ返信', description: '高評価・低評価どちらの口コミにも最適な返信文を生成', href: '/tools/review' },
   { icon: Users, name: '求人票・募集文', description: 'アルバイト・社員・シフト募集の文章を自動作成', href: '/tools/recruit' },
   { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet' },
-  { icon: Star, name: '満足度フィルタリング', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard' },
+  { icon: Star, name: '満足度アンケートメーカー', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard' },
 ]
 
 const phase2Tools = [
