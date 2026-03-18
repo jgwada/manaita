@@ -1,34 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { resolveShopId } from '@/lib/server-auth'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll() {},
-        },
-      }
-    )
+    const { searchParams } = new URL(req.url)
+    const shopId = await resolveShopId(searchParams.get('shopId'))
 
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) {
-      return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
-    }
-
-    const { data: userData } = await supabaseAdmin
-      .from('users')
-      .select('shop_id')
-      .eq('id', authUser.id)
-      .single()
-
-    if (!userData?.shop_id) {
+    if (!shopId) {
       return NextResponse.json({ success: false, error: '店舗が設定されていません' })
     }
 
@@ -36,14 +15,14 @@ export async function GET() {
     const { data: shop } = await supabaseAdmin
       .from('shops')
       .select('id, name, public_token, google_review_url')
-      .eq('id', userData.shop_id)
+      .eq('id', shopId)
       .single()
 
     // アンケート一覧（新しい順）
     const { data: surveys } = await supabaseAdmin
       .from('surveys')
       .select('*')
-      .eq('shop_id', userData.shop_id)
+      .eq('shop_id', shopId)
       .order('created_at', { ascending: false })
 
     const list = surveys || []

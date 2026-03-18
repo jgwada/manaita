@@ -5,6 +5,7 @@ import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { Plus, Trash2 } from 'lucide-react'
+import { useAppStore } from '@/store'
 
 type Setting = { id: string; category: string; label: string }
 type Category = 'menu' | 'good_point' | 'scene'
@@ -16,19 +17,23 @@ const CATEGORY_LABELS: Record<Category, string> = {
 }
 
 export default function SurveySettingsPage() {
+  const { shopProfile } = useAppStore()
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
   const [inputs, setInputs] = useState<Record<Category, string>>({ menu: '', good_point: '', scene: '' })
   const [adding, setAdding] = useState<Category | null>(null)
 
   useEffect(() => {
-    fetch('/api/survey-settings')
+    const url = shopProfile?.id
+      ? `/api/survey-settings?shopId=${shopProfile.id}`
+      : '/api/survey-settings'
+    fetch(url)
       .then(r => r.json())
       .then(res => {
         if (res.success) setSettings(res.data)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [shopProfile?.id])
 
   const handleAdd = async (category: Category) => {
     const label = inputs[category].trim()
@@ -38,7 +43,7 @@ export default function SurveySettingsPage() {
     const res = await fetch('/api/survey-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, label }),
+      body: JSON.stringify({ shopId: shopProfile?.id, category, label }),
     })
     const data = await res.json()
     if (data.success) {
@@ -52,7 +57,7 @@ export default function SurveySettingsPage() {
     const res = await fetch('/api/survey-settings', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ shopId: shopProfile?.id, id }),
     })
     const data = await res.json()
     if (data.success) {

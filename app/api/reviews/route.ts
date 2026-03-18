@@ -1,29 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { resolveShopId } from '@/lib/server-auth'
 
-async function getShopId() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll() {},
-      },
-    }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabaseAdmin.from('users').select('shop_id').eq('id', user.id).single()
-  return data?.shop_id ?? null
-}
-
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const shopId = await getShopId()
+    const { searchParams } = new URL(req.url)
+    const shopId = await resolveShopId(searchParams.get('shopId'))
     if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
     const { data, error } = await supabaseAdmin
@@ -43,10 +25,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const shopId = await getShopId()
+    const body = await req.json()
+    const shopId = await resolveShopId(body.shopId)
     if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
-    const { reviewerName, rating, content, reviewedAt } = await req.json()
+    const { reviewerName, rating, content, reviewedAt } = body
 
     const { data, error } = await supabaseAdmin
       .from('reviews')
@@ -70,10 +53,11 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const shopId = await getShopId()
+    const body = await req.json()
+    const shopId = await resolveShopId(body.shopId)
     if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
-    const { id, replied, replyText } = await req.json()
+    const { id, replied, replyText } = body
 
     const { error } = await supabaseAdmin
       .from('reviews')
@@ -91,10 +75,11 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const shopId = await getShopId()
+    const body = await req.json()
+    const shopId = await resolveShopId(body.shopId)
     if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
-    const { id } = await req.json()
+    const { id } = body
 
     const { error } = await supabaseAdmin
       .from('reviews')

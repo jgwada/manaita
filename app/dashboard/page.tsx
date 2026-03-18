@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
+import { useAppStore } from '@/store'
 
 type SurveyItem = {
   id: string
@@ -27,12 +28,16 @@ const STAR_LABELS: Record<number, string> = {
 }
 
 export default function DashboardPage() {
+  const { shopProfile } = useAppStore()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/dashboard')
+    const url = shopProfile?.id
+      ? `/api/dashboard?shopId=${shopProfile.id}`
+      : '/api/dashboard'
+    fetch(url)
       .then(r => r.json())
       .then(res => {
         if (res.success) setData(res.data)
@@ -40,7 +45,7 @@ export default function DashboardPage() {
       })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [shopProfile?.id])
 
   const surveyUrl = data?.shop?.public_token
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/survey/${data.shop.public_token}`

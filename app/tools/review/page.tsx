@@ -61,7 +61,11 @@ export default function ReviewPage() {
   const handleSync = async () => {
     setSyncing(true)
     setSyncMessage('')
-    const res = await fetch('/api/reviews/sync', { method: 'POST' })
+    const res = await fetch('/api/reviews/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId: shopProfile?.id }),
+    })
     const data = await res.json()
     if (data.success) {
       setSyncMessage(`${data.data.added}件の新しい口コミを取得しました`)
@@ -73,7 +77,9 @@ export default function ReviewPage() {
   }
 
   const fetchReviews = async () => {
-    const res = await fetch('/api/reviews')
+    const sid = shopProfile?.id
+    const url = sid ? `/api/reviews?shopId=${sid}` : '/api/reviews'
+    const res = await fetch(url)
     const data = await res.json()
     if (data.success) setReviews(data.data)
     setLoadingList(false)
@@ -86,6 +92,7 @@ export default function ReviewPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        shopId: shopProfile?.id,
         reviewerName: newReviewerName,
         rating: newRating,
         content: newContent,
@@ -157,7 +164,7 @@ export default function ReviewPage() {
     const res = await fetch('/api/reviews', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, replied: true, replyText }),
+      body: JSON.stringify({ shopId: shopProfile?.id, id, replied: true, replyText }),
     })
     const data = await res.json()
     if (data.success) {
@@ -173,7 +180,7 @@ export default function ReviewPage() {
     const res = await fetch('/api/reviews', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ shopId: shopProfile?.id, id }),
     })
     const data = await res.json()
     if (data.success) setReviews(prev => prev.filter(r => r.id !== id))
