@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
-import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail } from 'lucide-react'
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
+type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
 
 export default function AdminPage() {
   const router = useRouter()
@@ -20,6 +21,9 @@ export default function AdminPage() {
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [retryShopId, setRetryShopId] = useState<string | null>(null)
   const [expandedCacheId, setExpandedCacheId] = useState<string | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [resetSentId, setResetSentId] = useState<string | null>(null)
+  const [resetLoadingId, setResetLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -27,6 +31,7 @@ export default function AdminPage() {
       return
     }
     fetchShops()
+    fetchUsers()
   }, [user, router])
 
   const fetchShops = async () => {
@@ -34,6 +39,30 @@ export default function AdminPage() {
     const json = await res.json()
     if (json.success) setShops(json.data)
     setLoading(false)
+  }
+
+  const fetchUsers = async () => {
+    const res = await fetch('/api/admin/users')
+    const json = await res.json()
+    if (json.success) setUsers(json.data)
+  }
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    setResetLoadingId(userId)
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setResetSentId(userId)
+        setTimeout(() => setResetSentId(null), 3000)
+      }
+    } finally {
+      setResetLoadingId(null)
+    }
   }
 
   const doResearch = async (shopId: string, retryCount = 0) => {
@@ -182,6 +211,41 @@ export default function AdminPage() {
                       <pre className="text-xs text-[#111008] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* ユーザー一覧 */}
+          <h2 className="text-lg font-bold text-[#111008] mt-8 mb-3 flex items-center gap-2">
+            <Users size={18} />
+            発行済みユーザー一覧
+          </h2>
+          {users.length === 0 ? (
+            <p className="text-[#9A8880] text-sm text-center py-4">ユーザーがいません</p>
+          ) : (
+            <div className="space-y-2">
+              {users.map((u) => (
+                <div key={u.id} className="bg-white border border-[#EDE5DF] rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-[#111008] text-sm">{u.email}</p>
+                    <p className="text-xs text-[#9A8880] mt-0.5">
+                      {u.role === 'admin' ? '管理者' : `店舗：${u.shops?.name ?? '未紐づけ'}`}
+                      　登録：{new Date(u.created_at).toLocaleDateString('ja-JP')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleResetPassword(u.id, u.email)}
+                    disabled={resetLoadingId === u.id}
+                    className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 flex-shrink-0"
+                  >
+                    {resetSentId === u.id ? (
+                      <><CheckCircle size={12} className="text-green-600" />送信済み</>
+                    ) : resetLoadingId === u.id ? (
+                      <><RefreshCw size={12} className="animate-spin" />送信中...</>
+                    ) : (
+                      <><Mail size={12} />PW再設定メール</>
+                    )}
+                  </button>
                 </div>
               ))}
             </div>
