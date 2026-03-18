@@ -382,7 +382,8 @@ export default function BanquetGenPage() {
 
             <div
               onDrop={handleDrop}
-              onDragOver={e => e.preventDefault()}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
+              onDragEnter={e => { e.preventDefault(); e.stopPropagation() }}
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-[#EDE5DF] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
             >
