@@ -22,7 +22,7 @@ export default function AdminPage() {
       const json = await res.json()
       if (json.success && json.shop) {
         const s = json.shop
-        setShopProfile({
+        const profile = {
           id: s.id,
           name: s.name,
           area: s.area,
@@ -34,7 +34,10 @@ export default function AdminPage() {
           lineOfficialUrl: s.line_official_url,
           researchCache: s.research_cache,
           createdAt: s.created_at,
-        })
+        }
+        // sessionStorageに保存してページ遷移後も維持できるようにする
+        sessionStorage.setItem('admin_viewing_shop', JSON.stringify(profile))
+        setShopProfile(profile)
         router.push('/')
       }
     } finally {

@@ -38,11 +38,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           createdAt: data.user.created_at,
         })
 
-        // adminが店舗に入っている場合（shopProfileが既にセット済み）は上書きしない
-        const currentShopProfile = useAppStore.getState().shopProfile
-        const isAdminViewingShop = role === 'admin' && currentShopProfile !== null
-
-        if (!isAdminViewingShop && data.shop) {
+        if (role === 'admin') {
+          // admin: sessionStorageに選択中の店舗があればそれを使う
+          const saved = sessionStorage.getItem('admin_viewing_shop')
+          if (saved) {
+            try {
+              setShopProfile(JSON.parse(saved))
+            } catch {
+              sessionStorage.removeItem('admin_viewing_shop')
+            }
+          } else {
+            // 選択中の店舗がなければshopProfileをクリア（管理者モード）
+            setShopProfile(null)
+          }
+        } else if (data.shop) {
+          // 一般ユーザー: 自分の店舗をセット
           setShopProfile({
             id: data.shop.id,
             name: data.shop.name,

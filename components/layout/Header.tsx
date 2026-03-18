@@ -15,6 +15,7 @@ export default function Header() {
   }
 
   const handleExitShop = () => {
+    sessionStorage.removeItem('admin_viewing_shop')
     setShopProfile(null)
     router.push('/admin')
   }
