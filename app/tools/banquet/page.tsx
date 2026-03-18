@@ -200,6 +200,7 @@ export default function BanquetGenPage() {
   const [ingredientMode, setIngredientMode] = useState<'existing' | 'additional'>('additional')
   const [files, setFiles] = useState<File[]>([])
   const [menuText, setMenuText] = useState('')
+  const [wishes, setWishes] = useState('')
   const [priceMin, setPriceMin] = useState('5000')
   const [priceMax, setPriceMax] = useState('8000')
   const [loading, setLoading] = useState(false)
@@ -251,6 +252,7 @@ export default function BanquetGenPage() {
       formData.append('priceMax', priceMax)
       formData.append('ingredientMode', ingredientMode)
       formData.append('menuText', menuText)
+      formData.append('wishes', wishes)
 
       for (const f of files) {
         const isImage = f.type.startsWith('image/')
@@ -401,6 +403,23 @@ export default function BanquetGenPage() {
 本日のおすすめ：天然ぶり刺身 980円
 日替わり食材：松茸（今週のみ）
 ...`}
+              rows={4}
+              className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+            />
+          </div>
+
+          {/* 希望欄 */}
+          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111008] mb-0.5">希望・こだわり <span className="text-[#9A8880] font-normal text-xs">（任意）</span></p>
+            <p className="text-xs text-[#9A8880] mb-2">ターゲットや食材へのこだわりなど、プランに反映させたい要望を自由に入力してください</p>
+            <textarea
+              value={wishes}
+              onChange={e => setWishes(e.target.value)}
+              placeholder={`例：
+・仕事帰りのサラリーマン向けのコスパ重視プランにしたい
+・インバウンド（中国富裕層）が喜ぶ豪華コースにしたい
+・今まで扱ってこなかった高級食材を使って差別化したい
+・平日限定の家族向けお食事メインプランが欲しい`}
               rows={4}
               className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
             />

@@ -23,7 +23,7 @@ ${shopContext(shop)}
 （50字程度）
 `
 
-export const buildBanquetGenPrompt = (shop: ShopProfile, menuText: string | null, priceMin = '5000', priceMax = '8000', ingredientMode: 'existing' | 'additional' = 'additional', hasFiles = false): string => `
+export const buildBanquetGenPrompt = (shop: ShopProfile, menuText: string | null, priceMin = '5000', priceMax = '8000', ingredientMode: 'existing' | 'additional' = 'additional', hasFiles = false, wishes = ''): string => `
 あなたは飲食店経営の専門コンサルタントです。
 ${shopContext(shop)}
 
@@ -42,7 +42,7 @@ ${hasFiles && menuText
   : '以下の2軸で宴会コースプランを3つ提案してください。\n1. 既存メニューをコースとして組み合わせた提案\n2. 「少量の食材を買い足すだけで作れる新メニュー」を積極的に加えた提案（例：既存の肉料理があるならソースを変えた新料理、既存の野菜があるなら一品追加など）'
 }
 
-条件：
+${wishes.trim() ? `【お店からの希望・こだわり】\n${wishes.trim()}\n\n上記の希望を最優先で反映したプランを提案してください。\n` : ''}条件：
 - この店の業態・地域性・席数・客単価に合った現実的なプランにすること
 - 一般的な食材の仕入れ相場から原価を想定して、価格設定と利益を算出すること
 - ターゲット客層（歓送迎会・忘年会・女子会など）を明確にすること

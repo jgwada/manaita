@@ -14,9 +14,10 @@ export async function POST(req: Request) {
     const priceMax = formData.get('priceMax') as string ?? '8000'
     const ingredientMode = (formData.get('ingredientMode') as 'existing' | 'additional') ?? 'additional'
     const menuText = (formData.get('menuText') as string ?? '').trim()
+    const wishes = (formData.get('wishes') as string ?? '').trim()
     const files = formData.getAll('file') as File[]
 
-    const promptText = buildBanquetGenPrompt(shopProfile, menuText || null, priceMin, priceMax, ingredientMode, files.length > 0)
+    const promptText = buildBanquetGenPrompt(shopProfile, menuText || null, priceMin, priceMax, ingredientMode, files.length > 0, wishes)
 
     let messageContent: Anthropic.MessageParam['content']
 
