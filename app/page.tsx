@@ -10,7 +10,7 @@ import {
   Instagram, Star, Users, Wine, BarChart2,
   BookOpen, TrendingUp, DollarSign, Calculator,
   Calendar, UserCheck, Search, Tag,
-  MessageSquare, MessageCircle, FileText
+  MessageSquare, MessageCircle, FileText, MapPin
 } from 'lucide-react'
 
 const phase1Tools = [
@@ -19,6 +19,7 @@ const phase1Tools = [
   { icon: Users, name: '求人票・募集文', description: 'アルバイト・社員・シフト募集の文章を自動作成', href: '/tools/recruit', disabled: true },
   { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet' },
   { icon: Star, name: '満足度アンケートメーカー', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard' },
+  { icon: MapPin, name: 'Google情報メーカー', description: '食べログURLからGoogle口コミURLとPlace IDを自動取得', href: '/tools/google-info' },
 ]
 
 const phase2Tools = [
