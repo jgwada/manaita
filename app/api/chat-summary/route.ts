@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     const conversationText = turns.map(t => {
       if (t.role === 'owner' || t.role === 'ceo') return `【${speakerLabel}】\n${t.text}`
       if (t.role === 'summary') return null
-      return t.members.map(m => `【${m.key}】\n${m.text}`).join('\n\n')
+      if (t.role === 'team') return t.members.map(m => `【${m.key}】\n${m.text}`).join('\n\n')
+      return null
     }).filter(Boolean).join('\n\n---\n\n')
 
     const prompt = `以下は「${shopProfile.name}」（${shopProfile.area}・${shopProfile.industry}）の${speakerLabel}と${teamLabel}の相談の会話です。

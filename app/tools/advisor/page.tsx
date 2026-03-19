@@ -108,7 +108,7 @@ export default function AdvisorPage() {
     turns.forEach(t => {
       if (t.role === 'ceo') {
         msgs.push({ role: 'user', content: t.text })
-      } else {
+      } else if (t.role === 'team') {
         msgs.push({ role: 'assistant', content: t.members.map(m => `【${m.key}】\n${m.text}`).join('\n\n') })
       }
     })
