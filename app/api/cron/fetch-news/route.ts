@@ -7,13 +7,13 @@ import { callClaudeWithWebSearch } from '@/lib/claude'
 // ─── RSS ソース（4件に絞って安全に） ───────────────────────────────────────
 const RSS_SOURCES = [
   {
-    url: 'https://www.maff.go.jp/j/rss/press_all.rss',
+    url: 'https://www.maff.go.jp/rss.xml',
     source: '農林水産省',
     category: '農業・政策',
     maxItems: 8,
   },
   {
-    url: 'https://www.jfa.maff.go.jp/j/rss/press_all.rss',
+    url: 'https://www.jfa.maff.go.jp/rss.xml',
     source: '水産庁',
     category: '水産・漁業',
     maxItems: 8,
@@ -25,9 +25,9 @@ const RSS_SOURCES = [
     maxItems: 8,
   },
   {
-    url: 'https://www.agrinews.co.jp/rss',
-    source: '農業新聞',
-    category: '農業・農家',
+    url: 'https://www.ssnp.co.jp/feed/',
+    source: '食品産業新聞',
+    category: '食品・食材',
     maxItems: 8,
   },
 ]
