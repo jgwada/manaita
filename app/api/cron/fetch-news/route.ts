@@ -96,10 +96,10 @@ function parseWebSearchArticles(text: string) {
   const blocks = text.split('[ARTICLE]').slice(1)
   for (const block of blocks) {
     const content = block.split('[/ARTICLE]')[0] ?? ''
-    const title = content.match(/タイトル[：:]\s*(.+)/)?.[1]?.trim() ?? ''
-    const category = content.match(/カテゴリ[：:]\s*(.+)/)?.[1]?.trim() ?? '外食・飲食業界'
-    const url = content.match(/URL[：:]\s*(https?:\/\/\S+)/)?.[1]?.trim() ?? ''
-    const summary = content.match(/概要[：:]\s*([\s\S]+?)(?=\[\/ARTICLE]|$)/)?.[1]?.trim() ?? ''
+    const title = content.match(/\*{0,2}タイトル[：:]\*{0,2}\s*\*{0,2}(.+?)\*{0,2}$/m)?.[1]?.trim() ?? ''
+    const category = content.match(/\*{0,2}カテゴリ[：:]\*{0,2}\s*\*{0,2}(.+?)\*{0,2}$/m)?.[1]?.trim() ?? '外食・飲食業界'
+    const url = content.match(/\*{0,2}URL[：:]\*{0,2}\s*(https?:\/\/\S+)/)?.[1]?.trim() ?? ''
+    const summary = content.match(/\*{0,2}概要[：:]\*{0,2}\s*([\s\S]+?)(?=\[\/ARTICLE]|$)/)?.[1]?.replace(/\*{1,2}/g, '').trim() ?? ''
     if (title) articles.push({ title, url, source_name: 'Web検索', category, summary: summary.slice(0, 200), published_at: '' })
   }
   return articles
