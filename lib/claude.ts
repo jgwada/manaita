@@ -129,16 +129,23 @@ export async function callClaudeWithContentStream(
   }
 }
 
-// Web検索付き（非ストリーミング・Cron用）
+// Web検索付き（完全非ストリーミング・Cron用）
+// ストリーミングはVercelサーバーレスで接続が切れるため messages.create を使用
 export async function callClaudeWithWebSearch(
   prompt: string,
   maxTokens = 3000
 ): Promise<string> {
-  let result = ''
-  await callClaudeWithWebSearchStream(prompt, (chunk) => {
-    result += chunk
-  }, maxTokens)
-  return result
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: maxTokens,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return response.content
+    .filter(b => b.type === 'text')
+    .map(b => (b as { type: 'text'; text: string }).text)
+    .join('')
 }
 
 // チャット形式
