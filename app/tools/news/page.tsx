@@ -17,15 +17,18 @@ type Article = {
   fetched_date: string
 }
 
-const CATEGORIES = ['すべて', '外食・飲食業界', '農業・農家', '農業・政策', '水産・漁業', '食品・食材']
+const CATEGORIES = ['すべて', '外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制', '農業・農家', '農業・政策', '水産・漁業', '食品・食材']
 
 const CATEGORY_COLORS: Record<string, string> = {
-  '外食・飲食業界': 'bg-orange-100 text-orange-700',
-  '農業・農家':     'bg-green-100 text-green-700',
-  '農業・政策':     'bg-lime-100 text-lime-700',
-  '水産・漁業':     'bg-blue-100 text-blue-700',
-  '食品・食材':     'bg-amber-100 text-amber-700',
-  'Web検索':        'bg-purple-100 text-purple-700',
+  '外食・飲食業界':     'bg-orange-100 text-orange-700',
+  '食材・フードトレンド': 'bg-amber-100 text-amber-700',
+  '経営・コスト':       'bg-red-100 text-red-700',
+  '補助金・法律・規制': 'bg-indigo-100 text-indigo-700',
+  '農業・農家':         'bg-green-100 text-green-700',
+  '農業・政策':         'bg-lime-100 text-lime-700',
+  '水産・漁業':         'bg-blue-100 text-blue-700',
+  '食品・食材':         'bg-amber-100 text-amber-700',
+  'Web検索':            'bg-purple-100 text-purple-700',
 }
 
 function categoryColor(cat: string) {
