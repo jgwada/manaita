@@ -11,7 +11,7 @@ import {
   BookOpen, TrendingUp, DollarSign, Calculator,
   Calendar, UserCheck, Search, Tag,
   MessageSquare, MessageCircle, FileText, MapPin,
-  Zap
+  Zap, Newspaper
 } from 'lucide-react'
 
 const phase1Tools = [
@@ -21,6 +21,7 @@ const phase1Tools = [
   { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet', gradient: 'from-orange-400 to-red-500' },
   { icon: Star, name: '満足度アンケートメーカー', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard', gradient: 'from-emerald-400 to-teal-500' },
   { icon: MapPin, name: 'Google情報メーカー', description: 'GoogleマップURLからPlace IDを自動取得', href: '/tools/google-info', gradient: 'from-blue-400 to-cyan-500' },
+  { icon: Newspaper, name: '飲食ニュース', description: '外食・農業・水産業界の最新情報を毎朝自動更新', href: '/tools/news', gradient: 'from-blue-400 to-indigo-500' },
 ]
 
 const phase2Tools = [

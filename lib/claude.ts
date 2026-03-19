@@ -129,6 +129,18 @@ export async function callClaudeWithContentStream(
   }
 }
 
+// Web検索付き（非ストリーミング・Cron用）
+export async function callClaudeWithWebSearch(
+  prompt: string,
+  maxTokens = 3000
+): Promise<string> {
+  let result = ''
+  await callClaudeWithWebSearchStream(prompt, (chunk) => {
+    result += chunk
+  }, maxTokens)
+  return result
+}
+
 // チャット形式
 export async function callClaudeChat(
   messages: { role: 'user' | 'assistant'; content: string }[]
