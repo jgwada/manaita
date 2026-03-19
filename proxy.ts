@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // ログイン不要ページ
-  const publicPaths = ['/login', '/survey', '/api/survey', '/api/survey-public']
+  const publicPaths = ['/login', '/survey', '/api/survey', '/api/survey-public', '/api/cron']
   const isPublic = publicPaths.some((p) => pathname.startsWith(p))
 
   if (!user && !isPublic) {
