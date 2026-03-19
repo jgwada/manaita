@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Send } from 'lucide-react'
+import { Send, FileText, ClipboardList } from 'lucide-react'
 
 const MEMBERS = [
   { key: '経営顧問｜田村',           short: '経営顧問',          name: '田村', emoji: '💼', color: 'bg-slate-50 border-slate-200',   nameColor: 'text-slate-700',   dot: 'bg-slate-500' },
@@ -29,7 +29,10 @@ const SUGGESTIONS = [
 ]
 
 type MemberMessage = { key: string; text: string }
-type Turn = { role: 'owner'; text: string } | { role: 'team'; members: MemberMessage[] }
+type Turn =
+  | { role: 'owner'; text: string }
+  | { role: 'team'; members: MemberMessage[] }
+  | { role: 'summary'; text: string }
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -104,6 +107,8 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [streamText, setStreamText] = useState('')
   const [error, setError] = useState('')
+  const [summarizing, setSummarizing] = useState(false)
+  const [summaryStream, setSummaryStream] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -162,6 +167,36 @@ export default function ChatPage() {
     } finally {
       setLoading(false)
       setStreamText('')
+    }
+  }
+
+  const handleSummary = async () => {
+    if (summarizing || loading || !shopProfile || turns.length < 2) return
+    setSummarizing(true)
+    setSummaryStream('')
+    try {
+      const response = await fetch('/api/chat-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turns, shopProfile }),
+      })
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let result = ''
+      while (true) {
+        const { done, value } = await reader!.read()
+        if (done) break
+        result += decoder.decode(value)
+        setSummaryStream(result)
+      }
+      if (!result.startsWith('ERROR:')) {
+        setTurns(prev => [...prev, { role: 'summary', text: result }])
+      }
+    } catch {
+      // サイレントフェイル
+    } finally {
+      setSummarizing(false)
+      setSummaryStream('')
     }
   }
 
@@ -231,6 +266,19 @@ export default function ChatPage() {
                   </div>
                 )
               }
+              if (turn.role === 'summary') {
+                return (
+                  <div key={i} className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500">
+                      <ClipboardList size={14} className="text-white" />
+                      <span className="text-xs font-bold text-white">相談の要約・議事録</span>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                    </div>
+                  </div>
+                )
+              }
               return (
                 <div key={i} className="space-y-3">
                   {turn.members.map(m => <MemberBubble key={m.key} memberKey={m.key} text={m.text} />)}
@@ -247,9 +295,37 @@ export default function ChatPage() {
                 <span className="text-xs">チームが考えています...</span>
               </div>
             )}
+            {summarizing && (
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500">
+                  <ClipboardList size={14} className="text-white" />
+                  <span className="text-xs font-bold text-white">相談の要約・議事録</span>
+                  <span className="ml-auto flex gap-0.5">
+                    {[0,1,2].map(i => <span key={i} className="w-1 h-1 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
+                  </span>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{summaryStream || '　'}</p>
+                </div>
+              </div>
+            )}
             {error && <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl">{error}</div>}
             <div ref={bottomRef} />
           </div>
+
+          {/* 要約ボタン */}
+          {turns.length >= 2 && (
+            <div className="mb-2 flex justify-center">
+              <button
+                onClick={handleSummary}
+                disabled={summarizing || loading}
+                className="flex items-center gap-2 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 rounded-full px-4 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText size={13} />
+                {summarizing ? '要約を生成中...' : 'ここまでを要約する'}
+              </button>
+            </div>
+          )}
 
           {/* 入力 */}
           <div className="bg-white border border-[#E5E9F2] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
