@@ -55,8 +55,8 @@ export default function ReviewPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetchReviews()
-  }, [])
+    if (shopProfile?.id) fetchReviews()
+  }, [shopProfile?.id])
 
   const handleSync = async () => {
     setSyncing(true)

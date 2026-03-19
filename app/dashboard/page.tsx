@@ -34,10 +34,10 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const url = shopProfile?.id
-      ? `/api/dashboard?shopId=${shopProfile.id}`
-      : '/api/dashboard'
-    fetch(url)
+    if (!shopProfile?.id) return
+    setLoading(true)
+    setError('')
+    fetch(`/api/dashboard?shopId=${shopProfile.id}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setData(res.data)
