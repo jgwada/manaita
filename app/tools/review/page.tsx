@@ -212,6 +212,9 @@ export default function ReviewPage() {
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Googleから取得中...' : 'Googleから最新口コミを取得'}
           </button>
+          <p className="text-xs text-[#9CA3AF] mb-3 px-1">
+            ※ GoogleのAPI仕様により取得できるのは最大5件です。最新順ではなく、Googleが独自に選んだ口コミが表示されます。それ以外は手動で追加してください。
+          </p>
           {syncMessage && (
             <p className="text-xs text-center text-[#6B7280] mb-3">{syncMessage}</p>
           )}
