@@ -149,7 +149,7 @@ URL：（記事URL、不明な場合は省略）
     const webSearchResult = await Promise.race([
       callClaudeWithWebSearch(webSearchPrompt, 2000),
       new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 20000)
+        setTimeout(() => reject(new Error('timeout')), 35000)
       ),
     ])
     const webArticles = parseWebSearchArticles(webSearchResult)
