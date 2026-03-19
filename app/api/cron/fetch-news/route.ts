@@ -152,11 +152,14 @@ URL：（記事URL、不明な場合は省略）
         setTimeout(() => reject(new Error('timeout')), 35000)
       ),
     ])
+    console.log('[web-search] result length:', webSearchResult.length)
+    console.log('[web-search] preview:', webSearchResult.slice(0, 300))
     const webArticles = parseWebSearchArticles(webSearchResult)
+    console.log('[web-search] parsed articles:', webArticles.length)
     allArticles.push(...webArticles.map(a => ({ ...a, fetched_date: today })))
-  } catch {
+  } catch (e) {
     // Web検索がタイムアウト or 失敗 → RSS だけで続行（エラーにしない）
-    console.log('Web search skipped (timeout or error), proceeding with RSS only')
+    console.log('Web search skipped:', e instanceof Error ? e.message : String(e))
   }
 
   // ── Step 3: Supabase に保存（今日分を入れ替え） ──────────────────────
