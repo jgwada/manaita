@@ -142,30 +142,30 @@ export default function AdminPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-2xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-[#111008] mb-6">管理者ダッシュボード</h1>
+          <h1 className="text-2xl font-bold text-[#111827] mb-6">管理者ダッシュボード</h1>
 
           <div className="grid grid-cols-2 gap-4 mb-8">
             <button
               onClick={() => router.push('/admin/shops/new')}
-              className="bg-white border border-[#EDE5DF] rounded-xl p-5 flex flex-col items-center gap-2 hover:border-[#E8320A] transition-colors"
+              className="bg-white border border-[#E5E9F2] rounded-xl p-5 flex flex-col items-center gap-2 hover:border-[#E8320A] transition-colors"
             >
-              <div className="w-10 h-10 bg-[#FFF9F5] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#F1F3F8] rounded-full flex items-center justify-center">
                 <Plus size={20} className="text-[#E8320A]" />
               </div>
-              <span className="text-sm font-medium text-[#111008]">店舗を追加</span>
+              <span className="text-sm font-medium text-[#111827]">店舗を追加</span>
             </button>
 
             <button
               onClick={() => router.push('/admin/users/new')}
-              className="bg-white border border-[#EDE5DF] rounded-xl p-5 flex flex-col items-center gap-2 hover:border-[#E8320A] transition-colors"
+              className="bg-white border border-[#E5E9F2] rounded-xl p-5 flex flex-col items-center gap-2 hover:border-[#E8320A] transition-colors"
             >
-              <div className="w-10 h-10 bg-[#FFF9F5] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#F1F3F8] rounded-full flex items-center justify-center">
                 <Users size={20} className="text-[#E8320A]" />
               </div>
-              <span className="text-sm font-medium text-[#111008]">ユーザーを発行</span>
+              <span className="text-sm font-medium text-[#111827]">ユーザーを発行</span>
             </button>
           </div>
 
@@ -180,7 +180,7 @@ export default function AdminPage() {
             </div>
           )}
 
-          <h2 className="text-lg font-bold text-[#111008] mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#111827] mb-3 flex items-center gap-2">
             <Store size={18} />
             登録店舗一覧
           </h2>
@@ -190,17 +190,17 @@ export default function AdminPage() {
               <div className="w-6 h-6 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : shops.length === 0 ? (
-            <p className="text-[#9A8880] text-sm text-center py-8">まだ店舗が登録されていません</p>
+            <p className="text-[#6B7280] text-sm text-center py-8">まだ店舗が登録されていません</p>
           ) : (
             <div className="space-y-2">
               {shops.map((shop) => (
-                <div key={shop.id} className="bg-white border border-[#EDE5DF] rounded-xl overflow-hidden">
+                <div key={shop.id} className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div>
                       <button
                         onClick={() => handleEnterShop(shop.id)}
                         disabled={enteringShopId === shop.id}
-                        className="font-medium text-[#111008] hover:text-[#E8320A] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        className="font-medium text-[#111827] hover:text-[#E8320A] flex items-center gap-1.5 transition-colors disabled:opacity-50"
                       >
                         {enteringShopId === shop.id ? (
                           <RefreshCw size={13} className="animate-spin" />
@@ -209,7 +209,7 @@ export default function AdminPage() {
                         )}
                         {shop.name}
                       </button>
-                      <p className="text-sm text-[#9A8880]">{shop.area} · {shop.industry}</p>
+                      <p className="text-sm text-[#6B7280]">{shop.area} · {shop.industry}</p>
                       <p className="text-xs mt-0.5">
                         {shop.research_cache
                           ? <span className="text-green-600">
@@ -217,7 +217,7 @@ export default function AdminPage() {
                                 ? new Date(shop.research_updated_at).toLocaleDateString('ja-JP')
                                 : '日付不明'}）
                             </span>
-                          : <span className="text-[#9A8880]">未リサーチ</span>
+                          : <span className="text-[#6B7280]">未リサーチ</span>
                         }
                       </p>
                     </div>
@@ -225,7 +225,7 @@ export default function AdminPage() {
                       {shop.research_cache && (
                         <button
                           onClick={() => setExpandedCacheId(expandedCacheId === shop.id ? null : shop.id)}
-                          className="flex items-center gap-1 text-xs text-[#9A8880] border border-[#EDE5DF] rounded-lg px-2.5 py-1.5 hover:border-[#111008] hover:text-[#111008] transition-colors"
+                          className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111008] hover:text-[#111827] transition-colors"
                         >
                           {expandedCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           内容
@@ -234,7 +234,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleReResearch(shop.id)}
                         disabled={researchingId === shop.id}
-                        className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 text-xs border border-[#E5E9F2] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {researchingId === shop.id ? (
                           <><RefreshCw size={12} className="animate-spin" />リサーチ中...</>
@@ -248,9 +248,9 @@ export default function AdminPage() {
                   </div>
 
                   {expandedCacheId === shop.id && shop.research_cache && (
-                    <div className="border-t border-[#EDE5DF] px-4 py-3 bg-[#FFF9F5]">
-                      <p className="text-[10px] font-bold text-[#9A8880] uppercase tracking-wider mb-2">リサーチ内容</p>
-                      <pre className="text-xs text-[#111008] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
+                    <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">
+                      <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-2">リサーチ内容</p>
+                      <pre className="text-xs text-[#111827] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
                     </div>
                   )}
                 </div>
@@ -258,19 +258,19 @@ export default function AdminPage() {
             </div>
           )}
           {/* ユーザー一覧 */}
-          <h2 className="text-lg font-bold text-[#111008] mt-8 mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#111827] mt-8 mb-3 flex items-center gap-2">
             <Users size={18} />
             発行済みユーザー一覧
           </h2>
           {users.length === 0 ? (
-            <p className="text-[#9A8880] text-sm text-center py-4">ユーザーがいません</p>
+            <p className="text-[#6B7280] text-sm text-center py-4">ユーザーがいません</p>
           ) : (
             <div className="space-y-2">
               {users.map((u) => (
-                <div key={u.id} className="bg-white border border-[#EDE5DF] rounded-xl px-4 py-3 flex items-center justify-between">
+                <div key={u.id} className="bg-white border border-[#E5E9F2] rounded-xl px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-[#111008] text-sm">{u.email}</p>
-                    <p className="text-xs text-[#9A8880] mt-0.5">
+                    <p className="font-medium text-[#111827] text-sm">{u.email}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">
                       {u.role === 'admin' ? '管理者' : `店舗：${u.shops?.name ?? '未紐づけ'}`}
                       　登録：{new Date(u.created_at).toLocaleDateString('ja-JP')}
                     </p>
@@ -278,7 +278,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleResetPassword(u.id, u.email)}
                     disabled={resetLoadingId === u.id}
-                    className="flex items-center gap-1.5 text-xs border border-[#EDE5DF] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 flex-shrink-0"
+                    className="flex items-center gap-1.5 text-xs border border-[#E5E9F2] rounded-lg px-3 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50 flex-shrink-0"
                   >
                     {resetSentId === u.id ? (
                       <><CheckCircle size={12} className="text-green-600" />送信済み</>

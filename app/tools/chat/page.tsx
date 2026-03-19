@@ -173,7 +173,7 @@ export default function ChatPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5] flex flex-col">
+      <div className="min-h-screen bg-[#F1F3F8] flex flex-col">
         <Header />
         <div className="max-w-lg mx-auto w-full px-4 py-6 flex flex-col flex-1">
           <PageHeader
@@ -186,8 +186,8 @@ export default function ChatPage() {
           {showWelcome && (
             <div className="space-y-3 mb-4">
               {/* チーム紹介 */}
-              <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4">
-                <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest mb-3">あなたの専門家チーム</p>
+              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
+                <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">あなたの専門家チーム</p>
                 <div className="grid grid-cols-3 gap-2">
                   {MEMBERS.map(m => (
                     <div key={m.key} className={`flex items-center gap-2 border rounded-xl p-2 ${m.color}`}>
@@ -199,14 +199,14 @@ export default function ChatPage() {
               </div>
 
               {/* サジェスト */}
-              <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4">
-                <p className="text-xs font-bold text-[#9A8880] mb-3">💡 こんなことを相談できます</p>
+              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
+                <p className="text-xs font-bold text-[#6B7280] mb-3">💡 こんなことを相談できます</p>
                 <div className="space-y-2">
                   {SUGGESTIONS.map((s, i) => (
                     <button
                       key={i}
                       onClick={() => handleSend(s)}
-                      className="w-full text-left text-xs text-[#111008] border border-[#EDE5DF] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
+                      className="w-full text-left text-xs text-[#111827] border border-[#E5E9F2] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
                     >
                       {s}
                     </button>
@@ -223,7 +223,7 @@ export default function ChatPage() {
                 return (
                   <div key={i} className="flex justify-end">
                     <div className="max-w-[85%]">
-                      <p className="text-[10px] text-[#9A8880] text-right mb-1">オーナー（あなた）</p>
+                      <p className="text-[10px] text-[#6B7280] text-right mb-1">オーナー（あなた）</p>
                       <div className="bg-[#E8320A] text-white rounded-2xl rounded-tr-sm px-4 py-3">
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{turn.text}</p>
                       </div>
@@ -240,7 +240,7 @@ export default function ChatPage() {
 
             {loading && streamText && <StreamingBubble text={streamText} />}
             {loading && !streamText && (
-              <div className="flex items-center gap-2 text-[#9A8880]">
+              <div className="flex items-center gap-2 text-[#6B7280]">
                 <div className="flex gap-1">
                   {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-[#9A8880] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
                 </div>
@@ -252,14 +252,14 @@ export default function ChatPage() {
           </div>
 
           {/* 入力 */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="経営の悩みを何でも相談してください...（Shift+Enter で送信）"
               rows={2}
-              className="flex-1 resize-none text-sm text-[#111008] placeholder-[#9A8880] focus:outline-none"
+              className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
             />
             <button
               onClick={() => handleSend()}

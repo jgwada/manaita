@@ -23,16 +23,16 @@ function CopyField({ label, value }: { label: string; value: string }) {
   }
 
   return (
-    <div className="border border-[#EDE5DF] rounded-xl p-3">
-      <p className="text-xs font-bold text-[#9A8880] mb-1">{label}</p>
+    <div className="border border-[#E5E9F2] rounded-xl p-3">
+      <p className="text-xs font-bold text-[#6B7280] mb-1">{label}</p>
       <div className="flex items-center gap-2">
-        <p className={`flex-1 text-sm break-all ${isEmpty ? 'text-[#9A8880] italic' : 'text-[#111008]'}`}>
+        <p className={`flex-1 text-sm break-all ${isEmpty ? 'text-[#6B7280] italic' : 'text-[#111827]'}`}>
           {value || '情報なし'}
         </p>
         {!isEmpty && (
           <button
             onClick={handleCopy}
-            className="flex-shrink-0 flex items-center gap-1 text-xs text-[#9A8880] border border-[#EDE5DF] rounded-lg px-2 py-1 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
+            className="flex-shrink-0 flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2 py-1 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
           >
             {copied ? <CheckCircle size={11} className="text-green-500" /> : <Copy size={11} />}
             {copied ? 'コピー済' : 'コピー'}
@@ -91,7 +91,7 @@ export default function GoogleInfoPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -109,16 +109,16 @@ export default function GoogleInfoPage() {
                 </div>
               )}
 
-              <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111008] mb-0.5">GoogleマップのURLで取得</p>
-                <p className="text-xs text-[#9A8880] mb-3">Googleマップアプリで「共有」→「リンクをコピー」で取得したURLを貼り付けてください</p>
+              <div className="bg-white border border-[#E5E9F2] rounded-xl p-4 mb-4">
+                <p className="text-sm font-bold text-[#111827] mb-0.5">GoogleマップのURLで取得</p>
+                <p className="text-xs text-[#6B7280] mb-3">Googleマップアプリで「共有」→「リンクをコピー」で取得したURLを貼り付けてください</p>
                 <input
                   type="url"
                   value={mapsUrl}
                   onChange={e => setMapsUrl(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleGenerate() } }}
                   placeholder="https://maps.app.goo.gl/..."
-                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
+                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] mb-3"
                 />
                 <button
                   onClick={handleGenerate}
@@ -129,11 +129,11 @@ export default function GoogleInfoPage() {
                 </button>
               </div>
 
-              <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl px-4 py-3 text-xs text-[#9A8880] space-y-1.5">
-                <p className="font-bold text-[#111008]">📌 URLの取得方法</p>
+              <div className="bg-[#F1F3F8] border border-[#E5E9F2] rounded-xl px-4 py-3 text-xs text-[#6B7280] space-y-1.5">
+                <p className="font-bold text-[#111827]">📌 URLの取得方法</p>
                 <p>① Googleマップアプリでお店を検索して開く</p>
                 <p>② 右上の「共有」ボタン（📤）をタップ</p>
-                <p>③ 「リンクをコピー」で <span className="font-medium text-[#111008]">maps.app.goo.gl/...</span> のURLを取得</p>
+                <p>③ 「リンクをコピー」で <span className="font-medium text-[#111827]">maps.app.goo.gl/...</span> のURLを取得</p>
                 <p>④ そのURLをここに貼り付ける</p>
               </div>
             </>
@@ -141,21 +141,21 @@ export default function GoogleInfoPage() {
 
           {/* 取得中 */}
           {phase === 'generating' && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-8 text-center">
+            <div className="bg-white border border-[#E5E9F2] rounded-xl p-8 text-center">
               <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm font-medium text-[#111008]">情報を取得中...</p>
+              <p className="text-sm font-medium text-[#111827]">情報を取得中...</p>
             </div>
           )}
 
           {/* 結果 */}
           {phase === 'done' && result && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 space-y-3">
+            <div className="bg-white border border-[#E5E9F2] rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  {result.shopName && <p className="text-sm font-bold text-[#111008]">{result.shopName}</p>}
-                  {result.address && <p className="text-xs text-[#9A8880]">{result.address}</p>}
+                  {result.shopName && <p className="text-sm font-bold text-[#111827]">{result.shopName}</p>}
+                  {result.address && <p className="text-xs text-[#6B7280]">{result.address}</p>}
                 </div>
-                <button onClick={reset} className="text-xs text-[#9A8880] hover:text-[#E8320A] flex items-center gap-1">
+                <button onClick={reset} className="text-xs text-[#6B7280] hover:text-[#E8320A] flex items-center gap-1">
                   <RotateCcw size={12} /> やり直す
                 </button>
               </div>
@@ -177,7 +177,7 @@ export default function GoogleInfoPage() {
                 )}
                 <button
                   {...setupLinkProps}
-                  className="flex items-center gap-1.5 text-xs text-[#9A8880] hover:text-[#111008] hover:underline"
+                  className="flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#111827] hover:underline"
                 >
                   <ExternalLink size={12} />
                   店舗プロフィールを編集する

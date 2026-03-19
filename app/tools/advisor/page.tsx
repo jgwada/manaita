@@ -163,7 +163,7 @@ export default function AdvisorPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5] flex flex-col">
+      <div className="min-h-screen bg-[#F1F3F8] flex flex-col">
         <Header />
         <div className="max-w-lg mx-auto w-full px-4 py-6 flex flex-col flex-1">
           <PageHeader
@@ -174,8 +174,8 @@ export default function AdvisorPage() {
 
           {/* チームメンバー紹介（初回のみ） */}
           {turns.length === 0 && !loading && (
-            <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-              <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest mb-3">プロジェクトチーム</p>
+            <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+              <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">プロジェクトチーム</p>
               <div className="grid grid-cols-2 gap-2">
                 {MEMBERS.map(m => (
                   <div key={m.key} className={`flex items-center gap-2 border rounded-xl p-2.5 ${m.color}`}>
@@ -200,7 +200,7 @@ export default function AdvisorPage() {
                 return (
                   <div key={i} className="flex justify-end">
                     <div className="max-w-[85%]">
-                      <p className="text-[10px] text-[#9A8880] text-right mb-1">CEO（あなた）</p>
+                      <p className="text-[10px] text-[#6B7280] text-right mb-1">CEO（あなた）</p>
                       <div className="bg-[#E8320A] text-white rounded-2xl rounded-tr-sm px-4 py-3">
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{turn.text}</p>
                       </div>
@@ -217,7 +217,7 @@ export default function AdvisorPage() {
 
             {loading && streamText && <StreamingBubble text={streamText} />}
             {loading && !streamText && (
-              <div className="flex items-center gap-2 text-[#9A8880]">
+              <div className="flex items-center gap-2 text-[#6B7280]">
                 <div className="flex gap-1">
                   {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-[#9A8880] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
                 </div>
@@ -229,14 +229,14 @@ export default function AdvisorPage() {
           </div>
 
           {/* 入力エリア */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="CEOとして相談内容を入力...（Shift+Enter で送信）"
               rows={2}
-              className="flex-1 resize-none text-sm text-[#111008] placeholder-[#9A8880] focus:outline-none"
+              className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
             />
             <button
               onClick={handleSend}

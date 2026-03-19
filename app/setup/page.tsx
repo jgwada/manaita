@@ -91,20 +91,20 @@ export default function SetupPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-[#111008] mb-1">店舗プロフィール設定</h1>
-          <p className="text-sm text-[#9A8880] mb-3">入力した情報をもとにAIが最適な文章を生成します</p>
+          <h1 className="text-2xl font-bold text-[#111827] mb-1">店舗プロフィール設定</h1>
+          <p className="text-sm text-[#6B7280] mb-3">入力した情報をもとにAIが最適な文章を生成します</p>
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6">
             <p className="text-xs text-amber-700">店舗のネット上の情報をAIが自動リサーチし、より精度の高い回答を提供しています。リサーチ情報を更新したい場合は、運営者までお問い合わせください。</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-[#EDE5DF] rounded-xl p-6">
+          <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-[#E5E9F2] rounded-xl p-6">
             {fields.map((field) => (
               <div key={field.key}>
                 <div className="flex items-center gap-2 mb-1">
-                  <label className="text-sm font-medium text-[#111008]">
+                  <label className="text-sm font-medium text-[#111827]">
                     {field.label}
                     {field.required && <span className="text-[#E8320A] ml-1">*</span>}
                   </label>
@@ -137,7 +137,7 @@ export default function SetupPage() {
                   onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                   placeholder={field.placeholder}
                   required={field.required}
-                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] focus:border-transparent"
+                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] focus:border-transparent"
                 />
               </div>
             ))}

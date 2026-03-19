@@ -41,12 +41,12 @@ function ManualLines({ lines, forPdf = false }: { lines: string[]; forPdf?: bool
         if (line.startsWith('# ')) {
           return forPdf
             ? <div key={i} style={{ fontSize: '18px', fontWeight: 'bold', color: '#111008', marginBottom: '8px', marginTop: '4px' }}>{line.replace(/^# /, '')}</div>
-            : <h2 key={i} className="text-base font-bold text-[#111008] mb-2 mt-1">{line.replace(/^# /, '')}</h2>
+            : <h2 key={i} className="text-base font-bold text-[#111827] mb-2 mt-1">{line.replace(/^# /, '')}</h2>
         }
         if (line.startsWith('## ')) {
           return forPdf
             ? <div key={i} style={{ fontSize: '13px', fontWeight: 'bold', color: '#E8320A', marginTop: '20px', marginBottom: '6px', borderBottom: '1px solid #EDE5DF', paddingBottom: '4px' }}>{line.replace(/^## /, '')}</div>
-            : <h3 key={i} className="text-sm font-bold text-[#E8320A] mt-4 mb-1.5 border-b border-[#EDE5DF] pb-1">{line.replace(/^## /, '')}</h3>
+            : <h3 key={i} className="text-sm font-bold text-[#E8320A] mt-4 mb-1.5 border-b border-[#E5E9F2] pb-1">{line.replace(/^## /, '')}</h3>
         }
         const isChecklist = /^[\d]+[.\）\)、]/.test(line)
         if (isChecklist) {
@@ -55,9 +55,9 @@ function ManualLines({ lines, forPdf = false }: { lines: string[]; forPdf?: bool
                 <div style={{ width: '14px', height: '14px', border: '1.5px solid #CCC', borderRadius: '2px', flexShrink: 0, marginTop: '2px' }} />
                 <span style={{ fontSize: '12px', color: '#111008', lineHeight: 1.6 }}>{line}</span>
               </div>
-            : <div key={i} className="flex items-start gap-2.5 py-1.5 border-b border-[#EDE5DF] last:border-0">
-                <div className="w-4 h-4 mt-0.5 rounded border-2 border-[#EDE5DF] flex-shrink-0" />
-                <span className="text-sm text-[#111008] leading-relaxed">{line}</span>
+            : <div key={i} className="flex items-start gap-2.5 py-1.5 border-b border-[#E5E9F2] last:border-0">
+                <div className="w-4 h-4 mt-0.5 rounded border-2 border-[#E5E9F2] flex-shrink-0" />
+                <span className="text-sm text-[#111827] leading-relaxed">{line}</span>
               </div>
         }
         if (line.startsWith('- ') || line.startsWith('・')) {
@@ -69,7 +69,7 @@ function ManualLines({ lines, forPdf = false }: { lines: string[]; forPdf?: bool
               </div>
             : <div key={i} className="flex items-start gap-2 py-0.5">
                 <span className="text-[#E8320A] mt-1 text-xs flex-shrink-0">▸</span>
-                <span className="text-sm text-[#111008] leading-relaxed">{body}</span>
+                <span className="text-sm text-[#111827] leading-relaxed">{body}</span>
               </div>
         }
         return forPdf
@@ -152,7 +152,7 @@ function ManualBlock({ text, shopName, manualType }: { text: string; shopName: s
       {/* ヘッダー */}
       <div className="bg-[#111008] px-4 py-3 flex items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] text-[#9A8880] uppercase tracking-widest">Generated Manual</p>
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-widest">Generated Manual</p>
           <p className="text-sm font-bold text-white">{shopName}　{manualType}マニュアル</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
@@ -241,8 +241,8 @@ function MessageBubble({ message, shopProfile, manualType }: {
     return (
       <div className="space-y-2">
         {extracted.before && (
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-            <p className="text-sm text-[#111008] leading-relaxed whitespace-pre-wrap">{extracted.before}</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+            <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{extracted.before}</p>
           </div>
         )}
         <ManualBlock
@@ -251,8 +251,8 @@ function MessageBubble({ message, shopProfile, manualType }: {
           manualType={manualType}
         />
         {extracted.after && (
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-            <p className="text-sm text-[#111008] leading-relaxed whitespace-pre-wrap">{extracted.after}</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+            <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{extracted.after}</p>
           </div>
         )}
       </div>
@@ -269,7 +269,7 @@ function MessageBubble({ message, shopProfile, manualType }: {
       <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
         isUser
           ? 'bg-[#111008] text-white rounded-tr-sm'
-          : 'bg-white border border-[#EDE5DF] text-[#111008] rounded-tl-sm'
+          : 'bg-white border border-[#E5E9F2] text-[#111827] rounded-tl-sm'
       }`}>
         {message.content}
         {message.isStreaming && (
@@ -416,7 +416,7 @@ export default function ManualPage() {
   if (phase === 'select') {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-[#FFF9F5]">
+        <div className="min-h-screen bg-[#F1F3F8]">
           <Header />
           <div className="max-w-lg mx-auto px-4 py-6">
             <PageHeader
@@ -425,7 +425,7 @@ export default function ManualPage() {
               backHref="/"
             />
 
-            <p className="text-sm text-[#9A8880] mb-4">
+            <p className="text-sm text-[#6B7280] mb-4">
               どのマニュアルを作りますか？
             </p>
 
@@ -434,19 +434,19 @@ export default function ManualPage() {
                 <button
                   key={t.key}
                   onClick={() => startChat(t.key)}
-                  className="w-full flex items-center gap-4 bg-white border border-[#EDE5DF] rounded-xl px-5 py-4 text-left hover:border-[#E8320A] hover:shadow-sm transition-all group"
+                  className="w-full flex items-center gap-4 bg-white border border-[#E5E9F2] rounded-xl px-5 py-4 text-left hover:border-[#E8320A] hover:shadow-sm transition-all group"
                 >
                   <span className="text-3xl">{t.icon}</span>
                   <div className="flex-1">
-                    <p className="font-bold text-[#111008] group-hover:text-[#E8320A] transition-colors">{t.key}マニュアル</p>
-                    <p className="text-xs text-[#9A8880] mt-0.5">{t.desc}</p>
+                    <p className="font-bold text-[#111827] group-hover:text-[#E8320A] transition-colors">{t.key}マニュアル</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">{t.desc}</p>
                   </div>
                   <span className="text-[#EDE5DF] group-hover:text-[#E8320A] transition-colors text-lg">›</span>
                 </button>
               ))}
             </div>
 
-            <div className="mt-6 bg-[#111008] rounded-xl p-4 text-sm text-[#9A8880]">
+            <div className="mt-6 bg-[#111008] rounded-xl p-4 text-sm text-[#6B7280]">
               <p className="text-white font-bold mb-1">💬 チャット形式でヒアリング</p>
               <p className="text-xs leading-relaxed">
                 AIがお店のことを徹底的に質問しながら、繁盛店の知恵も交えて、
@@ -462,14 +462,14 @@ export default function ManualPage() {
   // ─── PHASE: CHAT ─────────────────────────────────
   return (
     <AuthGuard>
-      <div className="flex flex-col h-screen bg-[#FFF9F5]">
+      <div className="flex flex-col h-screen bg-[#F1F3F8]">
         <Header />
 
         {/* チャットヘッダー */}
-        <div className="bg-white border-b border-[#EDE5DF] px-4 py-3 flex items-center gap-3">
+        <div className="bg-white border-b border-[#E5E9F2] px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setPhase('select')}
-            className="text-[#9A8880] hover:text-[#111008] transition-colors p-1"
+            className="text-[#6B7280] hover:text-[#111827] transition-colors p-1"
           >
             ‹
           </button>
@@ -477,8 +477,8 @@ export default function ManualPage() {
             AI
           </div>
           <div>
-            <p className="text-sm font-bold text-[#111008]">{manualType}マニュアル作成</p>
-            <p className="text-xs text-[#9A8880]">AIコンサルタントがヒアリング中</p>
+            <p className="text-sm font-bold text-[#111827]">{manualType}マニュアル作成</p>
+            <p className="text-xs text-[#6B7280]">AIコンサルタントがヒアリング中</p>
           </div>
         </div>
 
@@ -496,7 +496,7 @@ export default function ManualPage() {
         </div>
 
         {/* 入力エリア */}
-        <div className="bg-white border-t border-[#EDE5DF] px-4 py-3">
+        <div className="bg-white border-t border-[#E5E9F2] px-4 py-3">
           {/* クイック返信ヒント */}
           {!isLoading && messages.length > 0 && messages.length < 4 && (
             <div className="flex gap-2 mb-2 flex-wrap">
@@ -504,7 +504,7 @@ export default function ManualPage() {
                 <button
                   key={hint}
                   onClick={() => sendMessage(hint)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A] hover:text-[#E8320A] transition-colors bg-white"
+                  className="text-xs px-3 py-1.5 rounded-full border border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A] hover:text-[#E8320A] transition-colors bg-white"
                 >
                   {hint}
                 </button>
@@ -521,7 +521,7 @@ export default function ManualPage() {
               placeholder="メッセージを入力…（Shift+Enterで送信）"
               rows={1}
               disabled={isLoading}
-              className="flex-1 border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none disabled:opacity-50"
+              className="flex-1 border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none disabled:opacity-50"
             />
             <button
               onClick={() => sendMessage()}
@@ -534,7 +534,7 @@ export default function ManualPage() {
               }
             </button>
           </div>
-          <p className="text-[10px] text-[#9A8880] mt-1 text-center">
+          <p className="text-[10px] text-[#6B7280] mt-1 text-center">
             Shift+Enter で送信　｜　「もう作って」と言うとマニュアルを生成します
           </p>
         </div>

@@ -194,7 +194,7 @@ export default function ReviewPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -207,65 +207,65 @@ export default function ReviewPage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="w-full flex items-center justify-center gap-2 bg-white border border-[#EDE5DF] rounded-xl py-3 text-sm text-[#111008] hover:border-[#E8320A] transition-colors mb-2 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-white border border-[#E5E9F2] rounded-xl py-3 text-sm text-[#111827] hover:border-[#E8320A] transition-colors mb-2 disabled:opacity-50"
           >
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Googleから取得中...' : 'Googleから最新口コミを取得'}
           </button>
           {syncMessage && (
-            <p className="text-xs text-center text-[#9A8880] mb-3">{syncMessage}</p>
+            <p className="text-xs text-center text-[#6B7280] mb-3">{syncMessage}</p>
           )}
 
           {/* 口コミ手動追加ボタン */}
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-[#EDE5DF] rounded-xl py-3 text-sm text-[#9A8880] hover:border-[#E8320A] hover:text-[#E8320A] transition-colors mb-4"
+            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-[#E5E9F2] rounded-xl py-3 text-sm text-[#6B7280] hover:border-[#E8320A] hover:text-[#E8320A] transition-colors mb-4"
           >
             <Plus size={16} /> 手動で口コミを追加する
           </button>
 
           {/* 追加フォーム */}
           {showAddForm && (
-            <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4 space-y-3">
+            <div className="bg-white border border-[#E5E9F2] rounded-xl p-4 mb-4 space-y-3">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-[#9A8880] mb-1 block">投稿者名（任意）</label>
+                  <label className="text-xs text-[#6B7280] mb-1 block">投稿者名（任意）</label>
                   <input
                     type="text"
                     value={newReviewerName}
                     onChange={e => setNewReviewerName(e.target.value)}
                     placeholder="例：山田 太郎"
-                    className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
+                    className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#9A8880] mb-1 block">評価</label>
+                  <label className="text-xs text-[#6B7280] mb-1 block">評価</label>
                   <select
                     value={newRating}
                     onChange={e => setNewRating(Number(e.target.value))}
-                    className="border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] bg-white"
+                    className="border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] bg-white"
                   >
                     {[5,4,3,2,1].map(n => <option key={n} value={n}>{'⭐'.repeat(n)}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs text-[#9A8880] mb-1 block">口コミ内容 <span className="text-[#E8320A]">*</span></label>
+                <label className="text-xs text-[#6B7280] mb-1 block">口コミ内容 <span className="text-[#E8320A]">*</span></label>
                 <textarea
                   value={newContent}
                   onChange={e => setNewContent(e.target.value)}
                   placeholder="Googleからコピペしてください"
                   rows={3}
-                  className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#9A8880] mb-1 block">投稿日（任意）</label>
+                <label className="text-xs text-[#6B7280] mb-1 block">投稿日（任意）</label>
                 <input
                   type="date"
                   value={newDate}
                   onChange={e => setNewDate(e.target.value)}
-                  className="border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
+                  className="border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
                 />
               </div>
               <button
@@ -285,11 +285,11 @@ export default function ReviewPage() {
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 bg-[#E8320A] rounded-full"></span>
-                <span className="text-sm font-bold text-[#111008]">未返信 {unreplied.length}件</span>
+                <span className="text-sm font-bold text-[#111827]">未返信 {unreplied.length}件</span>
               </div>
               <div className="space-y-2">
                 {unreplied.map(review => (
-                  <div key={review.id} className="bg-white border border-[#EDE5DF] rounded-xl overflow-hidden">
+                  <div key={review.id} className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
                     <button
                       onClick={() => handleSelect(review)}
                       className="w-full text-left p-4"
@@ -299,22 +299,22 @@ export default function ReviewPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm">{STAR(review.rating)}</span>
                             {review.reviewer_name && (
-                              <span className="text-xs text-[#9A8880]">{review.reviewer_name}</span>
+                              <span className="text-xs text-[#6B7280]">{review.reviewer_name}</span>
                             )}
                             {review.reviewed_at && (
-                              <span className="text-xs text-[#9A8880]">{review.reviewed_at}</span>
+                              <span className="text-xs text-[#6B7280]">{review.reviewed_at}</span>
                             )}
                           </div>
-                          <p className="text-sm text-[#111008] line-clamp-2">{review.content}</p>
+                          <p className="text-sm text-[#111827] line-clamp-2">{review.content}</p>
                         </div>
-                        {selectedId === review.id ? <ChevronUp size={16} className="text-[#9A8880] shrink-0 mt-1" /> : <ChevronDown size={16} className="text-[#9A8880] shrink-0 mt-1" />}
+                        {selectedId === review.id ? <ChevronUp size={16} className="text-[#6B7280] shrink-0 mt-1" /> : <ChevronDown size={16} className="text-[#6B7280] shrink-0 mt-1" />}
                       </div>
                     </button>
 
                     {/* 展開パネル */}
                     {selectedId === review.id && (
-                      <div className="border-t border-[#EDE5DF] p-4 bg-[#FFF9F5] space-y-3">
-                        <p className="text-sm text-[#111008]">{review.content}</p>
+                      <div className="border-t border-[#E5E9F2] p-4 bg-[#F1F3F8] space-y-3">
+                        <p className="text-sm text-[#111827]">{review.content}</p>
 
                         {/* 評価傾向 */}
                         <div className="flex gap-2">
@@ -323,7 +323,7 @@ export default function ReviewPage() {
                               key={s}
                               onClick={() => setSentiment(s)}
                               className={`flex-1 py-2 rounded-lg text-xs border transition-colors ${
-                                sentiment === s ? 'bg-[#E8320A] text-white border-[#E8320A]' : 'bg-white text-[#111008] border-[#EDE5DF]'
+                                sentiment === s ? 'bg-[#E8320A] text-white border-[#E8320A]' : 'bg-white text-[#111827] border-[#E5E9F2]'
                               }`}
                             >
                               {s === '高評価' ? '😊' : s === '普通・改善あり' ? '😐' : '😞'} {s}
@@ -351,7 +351,7 @@ export default function ReviewPage() {
                                   key={p}
                                   onClick={() => setSelectedReplyPattern(p)}
                                   className={`flex-1 py-2 rounded-lg text-xs border transition-colors ${
-                                    selectedReplyPattern === p ? 'bg-[#111008] text-white border-[#111008]' : 'bg-white text-[#111008] border-[#EDE5DF]'
+                                    selectedReplyPattern === p ? 'bg-[#111008] text-white border-[#111008]' : 'bg-white text-[#111827] border-[#E5E9F2]'
                                   }`}
                                 >
                                   パターン{p}（{p === 'A' ? '簡潔版' : '丁寧版'}）
@@ -359,14 +359,14 @@ export default function ReviewPage() {
                               ))}
                             </div>
 
-                            <div className="bg-white border border-[#EDE5DF] rounded-lg p-3">
-                              <p className="text-sm text-[#111008] leading-relaxed">{replyText}</p>
+                            <div className="bg-white border border-[#E5E9F2] rounded-lg p-3">
+                              <p className="text-sm text-[#111827] leading-relaxed">{replyText}</p>
                             </div>
 
                             <div className="flex gap-2">
                               <button
                                 onClick={() => navigator.clipboard.writeText(replyText)}
-                                className="flex-1 border border-[#EDE5DF] rounded-lg py-2.5 text-sm text-[#111008] hover:border-[#E8320A] transition-colors"
+                                className="flex-1 border border-[#E5E9F2] rounded-lg py-2.5 text-sm text-[#111827] hover:border-[#E8320A] transition-colors"
                               >
                                 コピー
                               </button>
@@ -383,7 +383,7 @@ export default function ReviewPage() {
 
                         <button
                           onClick={() => handleDelete(review.id)}
-                          className="w-full text-xs text-[#9A8880] py-1 hover:text-[#E8320A] transition-colors"
+                          className="w-full text-xs text-[#6B7280] py-1 hover:text-[#E8320A] transition-colors"
                         >
                           削除する
                         </button>
@@ -400,17 +400,17 @@ export default function ReviewPage() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span className="text-sm font-bold text-[#111008]">返信済み {replied.length}件</span>
+                <span className="text-sm font-bold text-[#111827]">返信済み {replied.length}件</span>
               </div>
               <div className="space-y-2">
                 {replied.map(review => (
-                  <div key={review.id} className="bg-white border border-[#EDE5DF] rounded-xl p-4 opacity-60">
+                  <div key={review.id} className="bg-white border border-[#E5E9F2] rounded-xl p-4 opacity-60">
                     <div className="flex items-center gap-2 mb-1">
                       <Check size={12} className="text-green-600" />
                       <span className="text-sm">{STAR(review.rating)}</span>
-                      {review.reviewer_name && <span className="text-xs text-[#9A8880]">{review.reviewer_name}</span>}
+                      {review.reviewer_name && <span className="text-xs text-[#6B7280]">{review.reviewer_name}</span>}
                     </div>
-                    <p className="text-sm text-[#111008] line-clamp-2">{review.content}</p>
+                    <p className="text-sm text-[#111827] line-clamp-2">{review.content}</p>
                   </div>
                 ))}
               </div>
@@ -418,7 +418,7 @@ export default function ReviewPage() {
           )}
 
           {!loadingList && reviews.length === 0 && (
-            <div className="text-center py-12 text-[#9A8880]">
+            <div className="text-center py-12 text-[#6B7280]">
               <p className="text-sm">口コミがまだ登録されていません</p>
               <p className="text-xs mt-1">上の「口コミを追加する」から登録してください</p>
             </div>

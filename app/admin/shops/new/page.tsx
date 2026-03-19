@@ -48,7 +48,7 @@ export default function NewShopPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-8">
           <button onClick={() => router.back()} className="flex items-center gap-1 text-[#9A8880] text-sm mb-6 hover:text-[#111008]">

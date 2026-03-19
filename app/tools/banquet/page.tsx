@@ -122,12 +122,12 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
             <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${color.badge} mb-2`}>
               プラン {plan.number}
             </span>
-            <h3 className="text-lg font-bold text-[#111008] leading-tight">{plan.name}</h3>
-            <p className="text-sm text-[#9A8880] mt-1">🎯 {plan.target}</p>
+            <h3 className="text-lg font-bold text-[#111827] leading-tight">{plan.name}</h3>
+            <p className="text-sm text-[#6B7280] mt-1">🎯 {plan.target}</p>
           </div>
           <button
             onClick={handleCopy}
-            className="flex-shrink-0 flex items-center gap-1 text-xs text-[#9A8880] border border-[#EDE5DF] bg-white rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
+            className="flex-shrink-0 flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] bg-white rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
           >
             {copied ? <CheckCircle size={12} className="text-green-500" /> : <Copy size={12} />}
             {copied ? 'コピー済' : 'コピー'}
@@ -137,10 +137,10 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 
       <div className="px-5 py-4 space-y-4">
         <div>
-          <p className="text-xs font-bold text-[#9A8880] uppercase tracking-wider mb-2">コース構成</p>
+          <p className="text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">コース構成</p>
           <ul className="space-y-1">
             {plan.courses.map((c, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-[#111008]">
+              <li key={i} className="flex items-center gap-2 text-sm text-[#111827]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E8320A] flex-shrink-0" />
                 {c}
               </li>
@@ -149,34 +149,34 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
         </div>
 
         <div>
-          <p className="text-xs font-bold text-[#9A8880] uppercase tracking-wider mb-2">価格・収益シミュレーション</p>
+          <p className="text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">価格・収益シミュレーション</p>
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#9A8880] mb-0.5">推奨売価</p>
+            <div className="bg-[#F1F3F8] border border-[#E5E9F2] rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6B7280] mb-0.5">推奨売価</p>
               <p className="text-sm font-bold text-[#E8320A]">{plan.price}</p>
             </div>
-            <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#9A8880] mb-0.5">想定原価率</p>
-              <p className="text-sm font-bold text-[#111008]">{plan.costRatio}</p>
+            <div className="bg-[#F1F3F8] border border-[#E5E9F2] rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6B7280] mb-0.5">想定原価率</p>
+              <p className="text-sm font-bold text-[#111827]">{plan.costRatio}</p>
             </div>
-            <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#9A8880] mb-0.5">粗利/1人</p>
-              <p className="text-sm font-bold text-[#111008]">{plan.profitPer}</p>
+            <div className="bg-[#F1F3F8] border border-[#E5E9F2] rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6B7280] mb-0.5">粗利/1人</p>
+              <p className="text-sm font-bold text-[#111827]">{plan.profitPer}</p>
             </div>
-            <div className="bg-[#FFF9F5] border border-[#EDE5DF] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#9A8880] mb-0.5">粗利/10名</p>
+            <div className="bg-[#F1F3F8] border border-[#E5E9F2] rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6B7280] mb-0.5">粗利/10名</p>
               <p className="text-sm font-bold text-green-600">{plan.profit10}</p>
             </div>
           </div>
           {plan.drinks && (
-            <p className="text-xs text-[#9A8880] mt-2 text-center">飲み放題：{plan.drinks}</p>
+            <p className="text-xs text-[#6B7280] mt-2 text-center">飲み放題：{plan.drinks}</p>
           )}
         </div>
 
         {plan.appeal && (
           <div className={`${color.bg} rounded-xl p-3`}>
-            <p className="text-xs font-bold text-[#9A8880] mb-1">💡 売りポイント</p>
-            <p className="text-sm text-[#111008] leading-relaxed">{plan.appeal}</p>
+            <p className="text-xs font-bold text-[#6B7280] mb-1">💡 売りポイント</p>
+            <p className="text-sm text-[#111827] leading-relaxed">{plan.appeal}</p>
           </div>
         )}
 
@@ -303,7 +303,7 @@ export default function BanquetGenPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -313,35 +313,35 @@ export default function BanquetGenPage() {
           />
 
           {/* 価格レンジ */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-3">推奨売価のレンジ（円/人）</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111827] mb-3">推奨売価のレンジ（円/人）</p>
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <label className="text-xs text-[#9A8880] mb-1 block">下限</label>
+                <label className="text-xs text-[#6B7280] mb-1 block">下限</label>
                 <input type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)} step={500}
-                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
+                  className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
               </div>
-              <span className="text-[#9A8880] mt-4">〜</span>
+              <span className="text-[#6B7280] mt-4">〜</span>
               <div className="flex-1">
-                <label className="text-xs text-[#9A8880] mb-1 block">上限</label>
+                <label className="text-xs text-[#6B7280] mb-1 block">上限</label>
                 <input type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)} step={500}
-                  className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
+                  className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
               </div>
             </div>
           </div>
 
           {/* 食材モード */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-3">食材の使い方</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111827] mb-3">食材の使い方</p>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setIngredientMode('existing')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'existing' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'}`}>
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'existing' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
                 <span className="text-lg">🍽️</span>
                 <span className="text-xs font-bold">既存食材のみ</span>
                 <span className="text-[10px] opacity-70">今あるもので組む</span>
               </button>
               <button onClick={() => setIngredientMode('additional')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'additional' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#EDE5DF] text-[#9A8880] hover:border-[#E8320A]'}`}>
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'additional' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
                 <span className="text-lg">🛒</span>
                 <span className="text-xs font-bold">追加食材もOK</span>
                 <span className="text-[10px] opacity-70">買い足しも提案</span>
@@ -350,9 +350,9 @@ export default function BanquetGenPage() {
           </div>
 
           {/* ファイル添付 */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-1">メニューのファイルを添付</p>
-            <p className="text-xs text-[#9A8880] mb-3">PDF・JPEG・PNG を複数添付できます（1ファイル4MBまで）</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111827] mb-1">メニューのファイルを添付</p>
+            <p className="text-xs text-[#6B7280] mb-3">PDF・JPEG・PNG を複数添付できます（1ファイル4MBまで）</p>
 
             <input
               ref={fileInputRef}
@@ -372,10 +372,10 @@ export default function BanquetGenPage() {
                       : <ImageIcon size={16} className="text-green-600 flex-shrink-0" />
                     }
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#111008] truncate">{f.name}</p>
-                      <p className="text-[10px] text-[#9A8880]">{(f.size / 1024).toFixed(0)} KB</p>
+                      <p className="text-xs font-bold text-[#111827] truncate">{f.name}</p>
+                      <p className="text-[10px] text-[#6B7280]">{(f.size / 1024).toFixed(0)} KB</p>
                     </div>
-                    <button onClick={() => removeFile(i)} className="text-[#9A8880] hover:text-[#E8320A] flex-shrink-0">
+                    <button onClick={() => removeFile(i)} className="text-[#6B7280] hover:text-[#E8320A] flex-shrink-0">
                       <X size={14} />
                     </button>
                   </div>
@@ -388,11 +388,11 @@ export default function BanquetGenPage() {
               onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
               onDragEnter={e => { e.preventDefault(); e.stopPropagation() }}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-[#EDE5DF] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
+              className="border-2 border-dashed border-[#E5E9F2] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
             >
-              <Upload size={22} className="text-[#9A8880]" />
-              <p className="text-xs font-bold text-[#111008]">ファイルを追加</p>
-              <p className="text-[10px] text-[#9A8880]">タップ または ドラッグ＆ドロップ</p>
+              <Upload size={22} className="text-[#6B7280]" />
+              <p className="text-xs font-bold text-[#111827]">ファイルを追加</p>
+              <p className="text-[10px] text-[#6B7280]">タップ または ドラッグ＆ドロップ</p>
             </div>
 
             {fileError && (
@@ -403,9 +403,9 @@ export default function BanquetGenPage() {
           </div>
 
           {/* テキスト入力 */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-1">テキストで補足入力 <span className="text-[#9A8880] font-normal text-xs">（任意）</span></p>
-            <p className="text-xs text-[#9A8880] mb-2">日替わりメニューや追加食材など、ファイルに載っていない情報を自由に入力できます</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111827] mb-1">テキストで補足入力 <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
+            <p className="text-xs text-[#6B7280] mb-2">日替わりメニューや追加食材など、ファイルに載っていない情報を自由に入力できます</p>
             <textarea
               value={menuText}
               onChange={e => setMenuText(e.target.value)}
@@ -414,14 +414,14 @@ export default function BanquetGenPage() {
 日替わり食材：松茸（今週のみ）
 ...`}
               rows={4}
-              className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+              className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
             />
           </div>
 
           {/* 希望欄 */}
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111008] mb-0.5">希望・こだわり <span className="text-[#9A8880] font-normal text-xs">（任意）</span></p>
-            <p className="text-xs text-[#9A8880] mb-2">ターゲットや食材へのこだわりなど、プランに反映させたい要望を自由に入力してください</p>
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold text-[#111827] mb-0.5">希望・こだわり <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
+            <p className="text-xs text-[#6B7280] mb-2">ターゲットや食材へのこだわりなど、プランに反映させたい要望を自由に入力してください</p>
             <textarea
               value={wishes}
               onChange={e => setWishes(e.target.value)}
@@ -431,7 +431,7 @@ export default function BanquetGenPage() {
 ・今まで扱ってこなかった高級食材を使って差別化したい
 ・平日限定の家族向けお食事メインプランが欲しい`}
               rows={4}
-              className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+              className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
             />
           </div>
 
@@ -445,10 +445,10 @@ export default function BanquetGenPage() {
           </button>
 
           {loading && (
-            <div className="bg-white border border-[#EDE5DF] rounded-2xl p-8 text-center mb-6">
+            <div className="bg-white border border-[#E5E9F2] rounded-2xl p-8 text-center mb-6">
               <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-bold text-[#111008] text-sm">メニューを解析しています...</p>
-              <p className="text-xs text-[#9A8880] mt-1">全国の繁盛店データを参照して提案中</p>
+              <p className="font-bold text-[#111827] text-sm">メニューを解析しています...</p>
+              <p className="text-xs text-[#6B7280] mt-1">全国の繁盛店データを参照して提案中</p>
             </div>
           )}
 
@@ -460,7 +460,7 @@ export default function BanquetGenPage() {
 
           {!loading && hasResults && (
             <div className="space-y-4">
-              <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest">
+              <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest">
                 提案プラン — {plans.length}案
               </p>
               {plans.map((plan, i) => (

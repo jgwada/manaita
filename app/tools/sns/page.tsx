@@ -129,7 +129,7 @@ export default function SnsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -139,11 +139,11 @@ export default function SnsPage() {
           />
 
           {/* 投稿ネタ提案 */}
-          <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
+          <div className="bg-white border border-[#E5E9F2] rounded-xl p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm font-medium text-[#111008]">💡 投稿ネタを提案してもらう</p>
-                <p className="text-xs text-[#9A8880] mt-0.5">お店の特徴をもとにAIがネタを提案します</p>
+                <p className="text-sm font-medium text-[#111827]">💡 投稿ネタを提案してもらう</p>
+                <p className="text-xs text-[#6B7280] mt-0.5">お店の特徴をもとにAIがネタを提案します</p>
               </div>
               <button
                 onClick={handleFetchIdeas}
@@ -156,7 +156,7 @@ export default function SnsPage() {
             </div>
 
             {ideasLoading && (
-              <div className="flex items-center gap-2 text-[#9A8880] py-2">
+              <div className="flex items-center gap-2 text-[#6B7280] py-2">
                 <div className="flex gap-1">
                   {[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#9A8880] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
                 </div>
@@ -172,10 +172,10 @@ export default function SnsPage() {
                   <button
                     key={i}
                     onClick={() => setContent(idea.title + (idea.description ? `\n${idea.description}` : ''))}
-                    className="w-full text-left border border-[#EDE5DF] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
+                    className="w-full text-left border border-[#E5E9F2] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
                   >
-                    <p className="text-xs font-bold text-[#111008]">{idea.title}</p>
-                    {idea.description && <p className="text-[11px] text-[#9A8880] mt-0.5">{idea.description}</p>}
+                    <p className="text-xs font-bold text-[#111827]">{idea.title}</p>
+                    {idea.description && <p className="text-[11px] text-[#6B7280] mt-0.5">{idea.description}</p>}
                   </button>
                 ))}
               </div>
@@ -183,8 +183,8 @@ export default function SnsPage() {
           </div>
 
           {/* 入力エリア */}
-          <div className="bg-white border border-[#EDE5DF] rounded-xl p-4 mb-4">
-            <label className="block text-sm font-medium text-[#111008] mb-2">
+          <div className="bg-white border border-[#E5E9F2] rounded-xl p-4 mb-4">
+            <label className="block text-sm font-medium text-[#111827] mb-2">
               今日の投稿内容・伝えたいこと <span className="text-[#E8320A]">*</span>
             </label>
             <textarea
@@ -192,10 +192,10 @@ export default function SnsPage() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="例：本日のランチは肉じゃが定食！ほっこり温かい味でお待ちしてます"
               rows={4}
-              className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+              className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
             />
 
-            <label className="block text-sm font-medium text-[#111008] mt-3 mb-2">トーン</label>
+            <label className="block text-sm font-medium text-[#111827] mt-3 mb-2">トーン</label>
             <div className="grid grid-cols-2 gap-2">
               {TONES.map((t) => (
                 <button
@@ -204,7 +204,7 @@ export default function SnsPage() {
                   className={`py-2 px-3 rounded-lg text-sm border transition-colors ${
                     tone === t
                       ? 'bg-[#E8320A] text-white border-[#E8320A]'
-                      : 'bg-white text-[#111008] border-[#EDE5DF] hover:border-[#E8320A]'
+                      : 'bg-white text-[#111827] border-[#E5E9F2] hover:border-[#E8320A]'
                   }`}
                 >
                   {t}

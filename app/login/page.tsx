@@ -32,59 +32,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFF9F5]">
-      <div className="bg-white rounded-2xl shadow-sm border border-[#EDE5DF] p-8 w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-[#F1F3F8] p-4">
+      <div className="w-full max-w-sm">
         {/* ロゴ */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#111008]" style={{ fontFamily: 'Oswald, sans-serif' }}>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 shadow-lg shadow-orange-200 mb-4">
+            <span className="text-white font-bold text-2xl" style={{ fontFamily: 'Oswald, sans-serif' }}>M</span>
+          </div>
+          <h1 className="text-3xl font-bold text-[#111827]" style={{ fontFamily: 'Oswald, sans-serif' }}>
             MANAITA
           </h1>
-          <p className="text-[#9A8880] text-sm mt-1">飲食店経営をサポートするツール集</p>
+          <p className="text-[#6B7280] text-sm mt-1">飲食店経営をサポートするツール集</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#111008] mb-1">
-              メールアドレス
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] focus:border-transparent"
-              placeholder="example@email.com"
-              required
-            />
-          </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-[#E5E9F2] p-6">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#374151] mb-1.5">
+                メールアドレス
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-[#E5E9F2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-[#F8F9FC] placeholder-[#9CA3AF]"
+                placeholder="example@email.com"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111008] mb-1">
-              パスワード
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-[#EDE5DF] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] focus:border-transparent"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-[#374151] mb-1.5">
+                パスワード
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-[#E5E9F2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-[#F8F9FC] placeholder-[#9CA3AF]"
+                placeholder="••••••••"
+                required
+              />
+            </div>
 
-          {error && (
-            <p className="text-sm text-[#E8320A] bg-red-50 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-2.5 rounded-xl">
+                {error}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#E8320A] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[#c92b09] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'ログイン中...' : 'ログイン'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl py-2.5 text-sm font-semibold transition-all shadow-md shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'ログイン中...' : 'ログイン'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )

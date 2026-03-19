@@ -33,7 +33,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-      className="flex items-center gap-1 text-xs text-[#9A8880] border border-[#EDE5DF] bg-white rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
+      className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] bg-white rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
     >
       {copied ? <CheckCircle size={12} className="text-green-500" /> : <Copy size={12} />}
       {copied ? 'コピー済' : 'コピー'}
@@ -71,7 +71,7 @@ function RichText({ text }: { text: string }) {
     // ▼ や ■ などの小見出しパターン（行が短く末尾が：で終わる）
     if (/^[▼■◆●▶]/.test(line) || (line.endsWith('：') && line.length < 30)) {
       elements.push(
-        <p key={i} className="mt-3 mb-1 text-sm font-bold text-[#111008]">
+        <p key={i} className="mt-3 mb-1 text-sm font-bold text-[#111827]">
           {line}
         </p>
       )
@@ -99,14 +99,14 @@ function RichText({ text }: { text: string }) {
                 <li key={bi} className="flex gap-2 text-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#E8320A] flex-shrink-0 mt-2" />
                   <span>
-                    <span className="font-bold text-[#111008]">{label}：</span>
+                    <span className="font-bold text-[#111827]">{label}：</span>
                     <span className="text-[#333]">{desc}</span>
                   </span>
                 </li>
               )
             }
             return (
-              <li key={bi} className="flex gap-2 text-sm text-[#111008]">
+              <li key={bi} className="flex gap-2 text-sm text-[#111827]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E8320A] flex-shrink-0 mt-2" />
                 <span>{body}</span>
               </li>
@@ -119,7 +119,7 @@ function RichText({ text }: { text: string }) {
 
     // 通常テキスト
     elements.push(
-      <p key={i} className="text-sm text-[#111008] leading-relaxed mt-1">
+      <p key={i} className="text-sm text-[#111827] leading-relaxed mt-1">
         {line}
       </p>
     )
@@ -131,11 +131,11 @@ function RichText({ text }: { text: string }) {
 
 function SectionCard({ section, content }: { section: typeof SECTIONS[0]; content: string }) {
   return (
-    <div className="bg-white border border-[#EDE5DF] rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-[#EDE5DF] bg-[#FFF9F5]">
+    <div className="bg-white border border-[#E5E9F2] rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E9F2] bg-[#F1F3F8]">
         <div className="flex items-center gap-2">
           <span className="text-base">{section.emoji}</span>
-          <span className="text-sm font-bold text-[#111008]">{section.title}</span>
+          <span className="text-sm font-bold text-[#111827]">{section.title}</span>
         </div>
         <CopyButton text={content} />
       </div>
@@ -197,7 +197,7 @@ export default function ResearchPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -206,10 +206,10 @@ export default function ResearchPage() {
             backHref="/"
           />
 
-          <div className="bg-white border border-[#EDE5DF] rounded-2xl p-4 mb-4">
-            <label className="block text-sm font-bold text-[#111008] mb-2">
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <label className="block text-sm font-bold text-[#111827] mb-2">
               気になる競合店の情報
-              <span className="text-xs font-normal text-[#9A8880] ml-2">（任意）</span>
+              <span className="text-xs font-normal text-[#6B7280] ml-2">（任意）</span>
             </label>
             <textarea
               value={competitorInfo}
@@ -219,9 +219,9 @@ export default function ResearchPage() {
 ・近くの個人居酒屋、席数30席ぐらい、SNSをうまく使っている
 ・〇〇というグループ店が近くに2店舗ある`}
               rows={5}
-              className="w-full border border-[#EDE5DF] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+              className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
             />
-            <p className="text-xs text-[#9A8880] mt-2">
+            <p className="text-xs text-[#6B7280] mt-2">
               空欄でも店舗プロフィールをもとに分析します
             </p>
           </div>
@@ -235,10 +235,10 @@ export default function ResearchPage() {
           </button>
 
           {loading && (
-            <div className="bg-white border border-[#EDE5DF] rounded-2xl p-8 text-center mb-6">
+            <div className="bg-white border border-[#E5E9F2] rounded-2xl p-8 text-center mb-6">
               <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-bold text-[#111008] text-sm">競合を分析しています...</p>
-              <p className="text-xs text-[#9A8880] mt-1">市場データをもとにレポートを作成中</p>
+              <p className="font-bold text-[#111827] text-sm">競合を分析しています...</p>
+              <p className="text-xs text-[#6B7280] mt-1">市場データをもとにレポートを作成中</p>
             </div>
           )}
 
@@ -249,7 +249,7 @@ export default function ResearchPage() {
           {!loading && hasResults && (
             <div className="space-y-3">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-xs font-bold text-[#9A8880] uppercase tracking-widest">競合リサーチレポート</p>
+                <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest">競合リサーチレポート</p>
                 <CopyButton text={rawOutput} />
               </div>
               {SECTIONS.map(section => sections[section.key] ? (
@@ -260,9 +260,9 @@ export default function ResearchPage() {
 
           {/* ストリーミング中の途中表示 */}
           {loading && rawOutput && (
-            <div className="bg-white border border-[#EDE5DF] rounded-2xl p-5 mt-4">
-              <p className="text-xs font-bold text-[#9A8880] mb-3">生成中...</p>
-              <p className="text-sm text-[#111008] leading-relaxed whitespace-pre-wrap">{rawOutput}</p>
+            <div className="bg-white border border-[#E5E9F2] rounded-2xl p-5 mt-4">
+              <p className="text-xs font-bold text-[#6B7280] mb-3">生成中...</p>
+              <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{rawOutput}</p>
             </div>
           )}
         </div>

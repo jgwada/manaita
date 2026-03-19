@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className={`${notoSansJP.variable} ${oswald.variable} font-sans antialiased bg-[#FFF9F5]`}>
+      <body className={`${notoSansJP.variable} ${oswald.variable} font-sans antialiased bg-[#F1F3F8]`}>
         {children}
       </body>
     </html>

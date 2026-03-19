@@ -69,7 +69,7 @@ export default function SurveySettingsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#FFF9F5]">
+      <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-lg mx-auto px-4 py-6">
           <PageHeader
@@ -85,21 +85,21 @@ export default function SurveySettingsPage() {
           ) : (
             <div className="space-y-6">
               {(['menu', 'good_point', 'scene'] as Category[]).map(cat => (
-                <div key={cat} className="bg-white border border-[#EDE5DF] rounded-xl p-4">
-                  <h2 className="text-sm font-bold text-[#111008] mb-3">{CATEGORY_LABELS[cat]}</h2>
+                <div key={cat} className="bg-white border border-[#E5E9F2] rounded-xl p-4">
+                  <h2 className="text-sm font-bold text-[#111827] mb-3">{CATEGORY_LABELS[cat]}</h2>
 
                   {/* 既存の選択肢 */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {byCategory(cat).map(s => (
-                      <div key={s.id} className="flex items-center gap-1 bg-[#FFF9F5] border border-[#EDE5DF] rounded-full px-3 py-1.5">
-                        <span className="text-sm text-[#111008]">{s.label}</span>
-                        <button onClick={() => handleDelete(s.id)} className="text-[#9A8880] hover:text-[#E8320A] ml-1">
+                      <div key={s.id} className="flex items-center gap-1 bg-[#F1F3F8] border border-[#E5E9F2] rounded-full px-3 py-1.5">
+                        <span className="text-sm text-[#111827]">{s.label}</span>
+                        <button onClick={() => handleDelete(s.id)} className="text-[#6B7280] hover:text-[#E8320A] ml-1">
                           <Trash2 size={12} />
                         </button>
                       </div>
                     ))}
                     {byCategory(cat).length === 0 && (
-                      <p className="text-xs text-[#9A8880]">まだ選択肢がありません</p>
+                      <p className="text-xs text-[#6B7280]">まだ選択肢がありません</p>
                     )}
                   </div>
 
@@ -111,7 +111,7 @@ export default function SurveySettingsPage() {
                       onChange={e => setInputs(prev => ({ ...prev, [cat]: e.target.value }))}
                       onKeyDown={e => e.key === 'Enter' && e.shiftKey && handleAdd(cat)}
                       placeholder={cat === 'menu' ? '例：ハラミ定食' : cat === 'good_point' ? '例：スタッフが親切' : '例：家族での食事'}
-                      className="flex-1 border border-[#EDE5DF] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
+                      className="flex-1 border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
                     />
                     <button
                       onClick={() => handleAdd(cat)}
@@ -121,7 +121,7 @@ export default function SurveySettingsPage() {
                       <Plus size={16} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-[#9A8880] mt-1">Shift + Enter で決定</p>
+                  <p className="text-[10px] text-[#6B7280] mt-1">Shift + Enter で決定</p>
                 </div>
               ))}
             </div>
