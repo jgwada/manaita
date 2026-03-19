@@ -148,15 +148,15 @@ export async function GET(req: Request) {
   }
 
   // ── Step 2: Claude Web検索（35秒タイムアウト、失敗しても続行） ──────────
-  const webSearchPrompt = `今日の日本の飲食・食品業界の最新ニュースを検索して、以下の形式で各カテゴリ4件ずつ（計24件）まとめてください。
+  const webSearchPrompt = `今日の日本の飲食・食品業界の最新ニュースを検索して、以下の形式で各カテゴリ2件ずつ（計12件）まとめてください。
 
-対象カテゴリと優先度：
+対象カテゴリ：
 1. 外食・飲食業界（最優先）：新規出店・閉店、業界動向、話題の飲食店、外食チェーンの戦略
 2. 食材・フードトレンド：旬の食材、ヒット食品、料理トレンド、新商品
 3. 経営・コスト：食材・光熱費・人件費の値上がり、原価率、飲食店経営に影響するコスト情報
 4. 補助金・法律・規制：飲食店向け補助金・助成金、食品衛生法、労働法改正、インボイス・税制
-5. 農業・農家（直近3日以内のもの優先）：農産物の価格・需給動向
-6. 水産・漁業（直近3日以内のもの優先）：魚介類の価格・漁獲量動向
+5. 農業・農家：農産物の価格・需給動向（直近3日以内のみ）
+6. 水産・漁業：魚介類の価格・漁獲量動向（直近3日以内のみ）
 
 各記事は必ず以下の形式で記載してください：
 [ARTICLE]
@@ -168,7 +168,7 @@ URL：（記事URL、不明な場合は省略）
 
   try {
     const webSearchResult = await Promise.race([
-      callClaudeWithWebSearch(webSearchPrompt, 4000),
+      callClaudeWithWebSearch(webSearchPrompt, 3000),
       new Promise<string>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 35000)
       ),
