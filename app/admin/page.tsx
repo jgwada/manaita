@@ -7,7 +7,7 @@ import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
 import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail, LogIn, Pencil, Save, X, Activity } from 'lucide-react'
 
-type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
+type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_prev_cache: string | null; research_updated_at: string | null }
 type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
 type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; created_at: string; shops: { name: string } | null }
 
@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [retryShopId, setRetryShopId] = useState<string | null>(null)
   const [expandedCacheId, setExpandedCacheId] = useState<string | null>(null)
+  const [expandedPrevCacheId, setExpandedPrevCacheId] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [resetSentId, setResetSentId] = useState<string | null>(null)
   const [resetLoadingId, setResetLoadingId] = useState<string | null>(null)
@@ -285,6 +286,15 @@ export default function AdminPage() {
                             {expandedCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             内容
                           </button>
+                          {shop.research_prev_cache && (
+                            <button
+                              onClick={() => setExpandedPrevCacheId(expandedPrevCacheId === shop.id ? null : shop.id)}
+                              className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                            >
+                              {expandedPrevCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              前回
+                            </button>
+                          )}
                           <button
                             onClick={() => handleEditCache(shop)}
                             className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
@@ -309,6 +319,13 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
+
+                  {expandedPrevCacheId === shop.id && shop.research_prev_cache && (
+                    <div className="border-t border-[#E5E9F2] px-4 py-3 bg-blue-50">
+                      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-2">前回のリサーチ内容</p>
+                      <pre className="text-xs text-[#111827] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_prev_cache}</pre>
+                    </div>
+                  )}
 
                   {expandedCacheId === shop.id && shop.research_cache && (
                     <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">

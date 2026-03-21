@@ -61,9 +61,19 @@ ${shopContext(shopProfile)}
       result += text
     }, 2000, 'claude-sonnet-4-6')
 
+    const { data: current } = await supabaseAdmin
+      .from('shops')
+      .select('research_cache')
+      .eq('id', shopId)
+      .single()
+
     await supabaseAdmin
       .from('shops')
-      .update({ research_cache: result, research_updated_at: new Date().toISOString() })
+      .update({
+        research_cache: result,
+        research_prev_cache: current?.research_cache ?? null,
+        research_updated_at: new Date().toISOString(),
+      })
       .eq('id', shopId)
 
     return NextResponse.json({ success: true, research: result, research_updated_at: new Date().toISOString() })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, ComponentType } from 'react'
+import { useEffect, useState, ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
@@ -11,7 +11,7 @@ import {
   BookOpen, TrendingUp, DollarSign, Calculator,
   Calendar, UserCheck, Search, Tag,
   MessageSquare, MessageCircle, FileText, MapPin,
-  Zap, Newspaper, Rocket
+  Zap, Newspaper, Rocket, Bell, CheckSquare, Square, Plus, Trash2, X
 } from 'lucide-react'
 
 const phase1Tools = [
@@ -49,9 +49,36 @@ const getStarterTools = (hasResearch: boolean) => [
   { icon: MessageCircle, name: 'なんでも経営相談', href: '/tools/chat', gradient: 'from-orange-400 to-red-500' },
 ]
 
+const TOOL_INFO: Record<string, { icon: ComponentType<{ size?: number; className?: string }>; name: string; href: string; gradient: string }> = {
+  sns: { icon: Instagram, name: 'SNS投稿文', href: '/tools/sns', gradient: 'from-pink-400 to-rose-500' },
+  review: { icon: Star, name: 'Google口コミ返信', href: '/tools/review', gradient: 'from-yellow-400 to-orange-500' },
+  'banquet-gen': { icon: Wine, name: '宴会プラン提案', href: '/tools/banquet', gradient: 'from-orange-400 to-red-500' },
+  research: { icon: Search, name: '競合リサーチ', href: '/tools/research', gradient: 'from-violet-400 to-indigo-500' },
+  'advisor-research': { icon: Search, name: '競合リサーチ', href: '/tools/research', gradient: 'from-violet-400 to-indigo-500' },
+  advisor: { icon: MessageSquare, name: '集客アドバイザー', href: '/tools/advisor', gradient: 'from-blue-400 to-violet-500' },
+  chat: { icon: MessageCircle, name: '経営相談AI', href: '/tools/chat', gradient: 'from-orange-400 to-red-500' },
+  manual: { icon: BookOpen, name: 'スタッフマニュアル', href: '/tools/manual', gradient: 'from-indigo-400 to-blue-500' },
+  recruit: { icon: Users, name: '求人票・募集文', href: '/tools/recruit', gradient: 'from-violet-400 to-purple-500' },
+}
+
+const NUDGE_RULES = [
+  { tool: 'sns', message: 'SNS投稿文を今週まだ作っていません', href: '/tools/sns', days: 7 },
+  { tool: 'review', message: 'Google口コミへの返信を確認しましょう', href: '/tools/review', days: 14 },
+  { tool: 'advisor', message: '集客戦略を見直す時期かもしれません', href: '/tools/advisor', days: 30 },
+]
+
+type ActionRecord = { id: string; content: string; done: boolean; created_at: string }
+
 export default function HomePage() {
   const router = useRouter()
   const { shopProfile, user } = useAppStore()
+
+  const [toolCounts, setToolCounts] = useState<Record<string, number>>({})
+  const [lastUsed, setLastUsed] = useState<Record<string, string>>({})
+  const [actions, setActions] = useState<ActionRecord[]>([])
+  const [actionInput, setActionInput] = useState('')
+  const [addingAction, setAddingAction] = useState(false)
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
 
   useEffect(() => {
     if (user && user.role === 'shop' && shopProfile && !shopProfile.name) {
@@ -59,6 +86,64 @@ export default function HomePage() {
     }
   }, [user, shopProfile, router])
 
+  useEffect(() => {
+    if (!shopProfile?.id) return
+    fetch(`/api/my-usage?shopId=${shopProfile.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) { setToolCounts(d.toolCounts); setLastUsed(d.lastUsed) } })
+    fetch(`/api/actions?shopId=${shopProfile.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setActions(d.data) })
+  }, [shopProfile?.id])
+
+  const addAction = async () => {
+    const content = actionInput.trim()
+    if (!content || !shopProfile?.id || addingAction) return
+    setAddingAction(true)
+    const res = await fetch('/api/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId: shopProfile.id, content }),
+    })
+    const json = await res.json()
+    if (json.success) {
+      setActions(prev => [json.data, ...prev])
+      setActionInput('')
+    }
+    setAddingAction(false)
+  }
+
+  const toggleAction = async (id: string, done: boolean) => {
+    setActions(prev => prev.map(a => a.id === id ? { ...a, done } : a))
+    await fetch('/api/actions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, done }),
+    })
+  }
+
+  const deleteAction = async (id: string) => {
+    setActions(prev => prev.filter(a => a.id !== id))
+    await fetch(`/api/actions?id=${id}`, { method: 'DELETE' })
+  }
+
+  // ナッジ：過去に使ったことがあるが一定日数使っていないツール
+  const nudge = !nudgeDismissed ? NUDGE_RULES.find(rule => {
+    const last = lastUsed[rule.tool]
+    if (!last) return false
+    const daysSince = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24)
+    return daysSince >= rule.days
+  }) ?? null : null
+
+  // よく使う機能：利用回数上位（重複を排除してhref単位で表示）
+  const topTools = Object.entries(toolCounts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([tool]) => TOOL_INFO[tool])
+    .filter(Boolean)
+    .filter((info, i, arr) => arr.findIndex(x => x.href === info.href) === i)
+    .slice(0, 4)
+
+  const hasUsageData = topTools.length >= 2
   const hasResearch = !!shopProfile?.researchCache
   const starterTools = getStarterTools(hasResearch)
 
@@ -85,22 +170,108 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* まずここから */}
+          {/* ナッジ */}
+          {nudge && shopProfile?.name && (
+            <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Bell size={14} className="text-orange-500 flex-shrink-0" />
+                <p className="text-sm text-[#111827] truncate">{nudge.message}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => router.push(nudge.href)}
+                  className="text-xs font-bold text-[#E8320A] whitespace-nowrap hover:underline"
+                >
+                  使う →
+                </button>
+                <button onClick={() => setNudgeDismissed(true)} className="text-[#C4C9D4] hover:text-[#6B7280] transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* まずここから / よく使う機能 */}
           {shopProfile?.name && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-red-500">
-                  <Rocket size={12} className="text-white" />
+                  {hasUsageData ? <TrendingUp size={12} className="text-white" /> : <Rocket size={12} className="text-white" />}
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-[#E8320A] uppercase tracking-widest">まずここから</span>
-                  <span className="text-xs text-[#6B7280] ml-2">おすすめの使い始め方</span>
+                  <span className="text-xs font-bold text-[#E8320A] uppercase tracking-widest">
+                    {hasUsageData ? 'よく使う機能' : 'まずここから'}
+                  </span>
+                  <span className="text-xs text-[#6B7280] ml-2">
+                    {hasUsageData ? 'よく使うツールのショートカット' : 'おすすめの使い始め方'}
+                  </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {starterTools.map((tool) => (
-                  <ToolCard key={tool.href} {...tool} description="" />
+                {hasUsageData
+                  ? topTools.map(info => (
+                      <ToolCard key={info.href} icon={info.icon} name={info.name} href={info.href} gradient={info.gradient} description="" />
+                    ))
+                  : starterTools.map((tool) => (
+                      <ToolCard key={tool.href} {...tool} description="" />
+                    ))
+                }
+              </div>
+            </div>
+          )}
+
+          {/* 施策メモ */}
+          {shopProfile?.name && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-red-500">
+                  <CheckSquare size={12} className="text-white" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#E8320A] uppercase tracking-widest">施策メモ</span>
+                  <span className="text-xs text-[#6B7280] ml-2">実行したい施策を記録</span>
+                </div>
+              </div>
+              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
+                {actions.length === 0 && (
+                  <p className="text-xs text-[#9A8880] text-center py-2 mb-2">
+                    施策がありません。アドバイザーに相談した後、実行する施策をメモしましょう。
+                  </p>
+                )}
+                {actions.map(action => (
+                  <div key={action.id} className="flex items-center gap-2.5 py-2.5 border-b border-[#F1F3F8] last:border-0">
+                    <button onClick={() => toggleAction(action.id, !action.done)} className="flex-shrink-0">
+                      {action.done
+                        ? <CheckSquare size={16} className="text-green-500" />
+                        : <Square size={16} className="text-[#9A8880]" />}
+                    </button>
+                    <p className={`text-sm flex-1 leading-snug ${action.done ? 'line-through text-[#9A8880]' : 'text-[#111827]'}`}>
+                      {action.content}
+                    </p>
+                    <button
+                      onClick={() => deleteAction(action.id)}
+                      className="flex-shrink-0 text-[#E5E9F2] hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
+                <div className="flex gap-2 mt-3">
+                  <input
+                    value={actionInput}
+                    onChange={e => setActionInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addAction()}
+                    placeholder="施策を入力して Enter..."
+                    className="flex-1 text-sm text-[#111827] placeholder-[#9A8880] border border-[#E5E9F2] rounded-lg px-3 py-2 focus:outline-none focus:border-[#E8320A]"
+                  />
+                  <button
+                    onClick={addAction}
+                    disabled={addingAction || !actionInput.trim()}
+                    className="bg-[#E8320A] text-white rounded-lg px-3 py-2 hover:bg-[#c92b09] transition-colors disabled:opacity-40"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
