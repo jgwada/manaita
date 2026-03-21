@@ -333,7 +333,7 @@ export default function ChatPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="経営の悩みを何でも相談してください...（Shift+Enter で送信）"
+              placeholder="経営の悩みを何でも相談してください..."
               rows={2}
               className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
             />

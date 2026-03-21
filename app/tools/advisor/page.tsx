@@ -310,7 +310,7 @@ export default function AdvisorPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="CEOとして相談内容を入力...（Shift+Enter で送信）"
+              placeholder="CEOとして相談内容を入力..."
               rows={2}
               className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
             />

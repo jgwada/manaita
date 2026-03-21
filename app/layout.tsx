@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Noto_Sans_JP, Oswald } from 'next/font/google'
 import './globals.css'
 
@@ -17,6 +17,11 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   title: 'Manaita - 飲食店経営サポートツール',
   description: '飲食店経営の「めんどくさい」をAIで10秒で解決',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

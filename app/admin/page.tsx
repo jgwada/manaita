@@ -416,8 +416,8 @@ export default function AdminPage() {
           ) : logs.length === 0 ? (
             <p className="text-[#6B7280] text-sm text-center py-4">ログがありません</p>
           ) : (
-            <div className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
-              <table className="w-full text-xs">
+            <div className="bg-white border border-[#E5E9F2] rounded-xl overflow-x-auto">
+              <table className="w-full text-xs min-w-[500px]">
                 <thead className="bg-[#F1F3F8] text-[#6B7280]">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">日時</th>
