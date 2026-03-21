@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { callClaudeWithContentStream } from '@/lib/claude'
 import { buildBanquetGenPrompt } from '@/lib/prompts/banquet'
+import { logUsage } from '@/lib/log'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     const files = formData.getAll('file') as File[]
 
     const promptText = buildBanquetGenPrompt(shopProfile, menuText || null, priceMin, priceMax, ingredientMode, files.length > 0, wishes)
+    logUsage(shopProfile.id, 'banquet-gen', `${priceMin}〜${priceMax}円`)
 
     let messageContent: Anthropic.MessageParam['content']
 

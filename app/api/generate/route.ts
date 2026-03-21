@@ -7,6 +7,7 @@ import { buildReviewPrompt } from '@/lib/prompts/review'
 import { buildRecruitPrompt } from '@/lib/prompts/recruit'
 import { buildBanquetPrompt } from '@/lib/prompts/banquet'
 import { buildManualPrompt } from '@/lib/prompts/manual'
+import { logUsage } from '@/lib/log'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -19,26 +20,34 @@ export async function POST(req: Request) {
     }
 
     let prompt = ''
+    let inputSummary = ''
 
     switch (toolName) {
       case 'sns':
         prompt = buildSnsPrompt(shopProfile, inputs.content, tone || 'カジュアル')
+        inputSummary = inputs.content?.slice(0, 50) ?? ''
         break
       case 'review':
         prompt = buildReviewPrompt(shopProfile, inputs.review, inputs.sentiment)
+        inputSummary = inputs.review?.slice(0, 50) ?? ''
         break
       case 'recruit':
         prompt = buildRecruitPrompt(shopProfile, inputs.type, inputs.conditions)
+        inputSummary = inputs.type ?? ''
         break
       case 'banquet':
         prompt = buildBanquetPrompt(shopProfile, inputs.type, inputs.details)
+        inputSummary = inputs.type ?? ''
         break
       case 'manual':
         prompt = buildManualPrompt(shopProfile, inputs.type, inputs.rules)
+        inputSummary = inputs.type ?? ''
         break
       default:
         return NextResponse.json({ success: false, error: '未対応のツールです。' })
     }
+
+    logUsage(shopProfile.id, toolName, inputSummary)
 
     const encoder = new TextEncoder()
     const stream = new ReadableStream({

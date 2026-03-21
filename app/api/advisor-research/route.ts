@@ -3,6 +3,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { callClaudeWithWebSearchStream } from '@/lib/claude'
 import { shopContext } from '@/lib/prompts/helpers'
+import { logUsage } from '@/lib/log'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -38,6 +39,7 @@ ${shopContext(shopProfile)}${urlSection}
 情報が見つからない項目は「情報なし」と明記してください。
 `
 
+    logUsage(shopProfile.id, 'advisor-research')
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {

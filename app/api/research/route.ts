@@ -3,6 +3,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { callClaudeWithContentStream } from '@/lib/claude'
 import { buildResearchPrompt } from '@/lib/prompts/research'
+import { logUsage } from '@/lib/log'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
     }
 
     const prompt = buildResearchPrompt(shopProfile, competitorInfo)
+    logUsage(shopProfile.id, 'research')
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({

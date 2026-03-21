@@ -3,6 +3,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { callClaudeChatStream } from '@/lib/claude'
 import { buildAdvisorSystemPrompt } from '@/lib/prompts/advisor'
+import { logUsage } from '@/lib/log'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     }
 
     const systemPrompt = buildAdvisorSystemPrompt(shopProfile, researchContext)
+    logUsage(shopProfile.id, 'advisor', messages.at(-1)?.content?.slice(0, 50))
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({
@@ -21,7 +23,7 @@ export async function POST(req: Request) {
         try {
           await callClaudeChatStream(messages, (text) => {
             controller.enqueue(encoder.encode(text))
-          }, systemPrompt)
+          }, systemPrompt, 3000)
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
           console.error('advisor stream error:', msg)

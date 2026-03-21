@@ -24,3 +24,25 @@ export async function GET(
     return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ shopId: string }> }
+) {
+  try {
+    const { shopId } = await params
+    const { research_cache } = await req.json() as { research_cache: string }
+
+    const { error } = await supabaseAdmin
+      .from('shops')
+      .update({ research_cache, research_updated_at: new Date().toISOString() })
+      .eq('id', shopId)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
+  }
+}

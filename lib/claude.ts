@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const MODEL = 'claude-sonnet-4-6'
-const MAX_TOKENS = 4000
+const MODEL = 'claude-haiku-4-5-20251001'
+const MAX_TOKENS = 2000
+const CHAT_HISTORY_LIMIT = 10
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -51,14 +52,18 @@ export async function callClaudeStream(
 export async function callClaudeChatStream(
   messages: { role: 'user' | 'assistant'; content: string }[],
   onChunk: (text: string) => void,
-  systemPrompt?: string
+  systemPrompt?: string,
+  maxTokens = MAX_TOKENS
 ): Promise<void> {
   try {
+    const recentMessages = messages.slice(-CHAT_HISTORY_LIMIT)
     const stream = await client.messages.stream({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
-      ...(systemPrompt ? { system: systemPrompt } : {}),
-      messages,
+      max_tokens: maxTokens,
+      ...(systemPrompt ? {
+        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] as any
+      } : {}),
+      messages: recentMessages,
     })
     for await (const chunk of stream) {
       if (
@@ -156,7 +161,7 @@ export async function callClaudeChat(
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      messages
+      messages: messages.slice(-CHAT_HISTORY_LIMIT)
     })
     return response.content[0].type === 'text' ? response.content[0].text : ''
   } catch (error) {

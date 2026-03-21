@@ -5,15 +5,35 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import Header from '@/components/layout/Header'
 import AuthGuard from '@/components/layout/AuthGuard'
-import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail, LogIn } from 'lucide-react'
+import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail, LogIn, Pencil, Save, X, Activity } from 'lucide-react'
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_updated_at: string | null }
 type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
+type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; created_at: string; shops: { name: string } | null }
+
+const TOOL_LABELS: Record<string, string> = {
+  sns: 'SNS文章',
+  review: '口コミ返信',
+  recruit: '求人文章',
+  banquet: '宴会プラン',
+  'banquet-gen': '宴会コース生成',
+  manual: 'マニュアル',
+  chat: '経営相談',
+  advisor: '集客アドバイザー',
+  'advisor-research': 'アドバイザーリサーチ',
+  research: '競合リサーチ',
+}
 
 export default function AdminPage() {
   const router = useRouter()
   const { user, setShopProfile } = useAppStore()
   const [enteringShopId, setEnteringShopId] = useState<string | null>(null)
+  const [editingCacheId, setEditingCacheId] = useState<string | null>(null)
+  const [editingCacheText, setEditingCacheText] = useState<string>('')
+  const [savingCacheId, setSavingCacheId] = useState<string | null>(null)
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logShopFilter, setLogShopFilter] = useState<string>('all')
 
   const handleEnterShop = async (shopId: string) => {
     setEnteringShopId(shopId)
@@ -63,6 +83,7 @@ export default function AdminPage() {
     }
     fetchShops()
     fetchUsers()
+    fetchLogs()
   }, [user, router])
 
   const fetchShops = async () => {
@@ -76,6 +97,15 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/users')
     const json = await res.json()
     if (json.success) setUsers(json.data)
+  }
+
+  const fetchLogs = async (shopId?: string) => {
+    setLogsLoading(true)
+    const url = shopId && shopId !== 'all' ? `/api/admin/logs?shopId=${shopId}` : '/api/admin/logs'
+    const res = await fetch(url)
+    const json = await res.json()
+    if (json.success) setLogs(json.data)
+    setLogsLoading(false)
   }
 
   const handleResetPassword = async (userId: string, email: string) => {
@@ -139,6 +169,30 @@ export default function AdminPage() {
   }
 
   const handleReResearch = (shopId: string) => doResearch(shopId)
+
+  const handleEditCache = (shop: Shop) => {
+    setEditingCacheId(shop.id)
+    setEditingCacheText(shop.research_cache ?? '')
+    setExpandedCacheId(shop.id)
+  }
+
+  const handleSaveCache = async (shopId: string) => {
+    setSavingCacheId(shopId)
+    try {
+      const res = await fetch(`/api/admin/shops/${shopId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ research_cache: editingCacheText }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setShops(prev => prev.map(s => s.id === shopId ? { ...s, research_cache: editingCacheText } : s))
+        setEditingCacheId(null)
+      }
+    } finally {
+      setSavingCacheId(null)
+    }
+  }
 
   return (
     <AuthGuard>
@@ -223,13 +277,22 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {shop.research_cache && (
-                        <button
-                          onClick={() => setExpandedCacheId(expandedCacheId === shop.id ? null : shop.id)}
-                          className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111008] hover:text-[#111827] transition-colors"
-                        >
-                          {expandedCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          内容
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setExpandedCacheId(expandedCacheId === shop.id ? null : shop.id)}
+                            className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111008] hover:text-[#111827] transition-colors"
+                          >
+                            {expandedCacheId === shop.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            内容
+                          </button>
+                          <button
+                            onClick={() => handleEditCache(shop)}
+                            className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
+                          >
+                            <Pencil size={12} />
+                            編集
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => handleReResearch(shop.id)}
@@ -249,8 +312,37 @@ export default function AdminPage() {
 
                   {expandedCacheId === shop.id && shop.research_cache && (
                     <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">
-                      <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-2">リサーチ内容</p>
-                      <pre className="text-xs text-[#111827] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">リサーチ内容</p>
+                        {editingCacheId === shop.id && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setEditingCacheId(null)}
+                              className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#111827] transition-colors"
+                            >
+                              <X size={12} />キャンセル
+                            </button>
+                            <button
+                              onClick={() => handleSaveCache(shop.id)}
+                              disabled={savingCacheId === shop.id}
+                              className="flex items-center gap-1 text-xs text-white bg-[#E8320A] rounded-lg px-2.5 py-1 hover:bg-[#c92b09] transition-colors disabled:opacity-50"
+                            >
+                              {savingCacheId === shop.id ? <RefreshCw size={11} className="animate-spin" /> : <Save size={11} />}
+                              保存
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {editingCacheId === shop.id ? (
+                        <textarea
+                          value={editingCacheText}
+                          onChange={(e) => setEditingCacheText(e.target.value)}
+                          className="w-full text-xs text-[#111827] bg-white border border-[#E5E9F2] rounded-lg p-3 leading-relaxed font-sans resize-none focus:outline-none focus:border-[#E8320A]"
+                          rows={20}
+                        />
+                      ) : (
+                        <pre className="text-xs text-[#111827] whitespace-pre-wrap leading-relaxed font-sans">{shop.research_cache}</pre>
+                      )}
                     </div>
                   )}
                 </div>
@@ -290,6 +382,67 @@ export default function AdminPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* 利用ログ */}
+          <h2 className="text-lg font-bold text-[#111827] mt-8 mb-3 flex items-center gap-2">
+            <Activity size={18} />
+            利用ログ
+          </h2>
+          <div className="flex items-center gap-2 mb-3">
+            <select
+              value={logShopFilter}
+              onChange={(e) => {
+                setLogShopFilter(e.target.value)
+                fetchLogs(e.target.value)
+              }}
+              className="text-xs border border-[#E5E9F2] rounded-lg px-3 py-1.5 bg-white text-[#111827] focus:outline-none focus:border-[#E8320A]"
+            >
+              <option value="all">全店舗</option>
+              {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <button
+              onClick={() => fetchLogs(logShopFilter)}
+              className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111827] hover:text-[#111827] transition-colors"
+            >
+              <RefreshCw size={11} />更新
+            </button>
+          </div>
+          {logsLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : logs.length === 0 ? (
+            <p className="text-[#6B7280] text-sm text-center py-4">ログがありません</p>
+          ) : (
+            <div className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-[#F1F3F8] text-[#6B7280]">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium">日時</th>
+                    <th className="text-left px-4 py-2 font-medium">店舗</th>
+                    <th className="text-left px-4 py-2 font-medium">機能</th>
+                    <th className="text-left px-4 py-2 font-medium">入力メモ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, i) => (
+                    <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'}>
+                      <td className="px-4 py-2 text-[#6B7280] whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-4 py-2 text-[#111827] whitespace-nowrap">{log.shops?.name ?? '不明'}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <span className="bg-[#F1F3F8] text-[#111827] rounded-md px-2 py-0.5">
+                          {TOOL_LABELS[log.tool_name] ?? log.tool_name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-[#6B7280] max-w-[160px] truncate">{log.input_summary ?? ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
