@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Send, FileText, ClipboardList } from 'lucide-react'
+import { Send, FileText, ClipboardList, Plus, CheckCircle } from 'lucide-react'
 
 const MEMBERS = [
   { key: 'マーケッター｜田中',      short: 'マーケッター',   name: '田中', emoji: '📊', color: 'bg-blue-50 border-blue-200',    nameColor: 'text-blue-700',   dot: 'bg-blue-500' },
@@ -96,6 +96,10 @@ export default function AdvisorPage() {
   const [chatError, setChatError] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [summaryStream, setSummaryStream] = useState('')
+  const [actionOpenIdx, setActionOpenIdx] = useState<number | null>(null)
+  const [actionText, setActionText] = useState('')
+  const [actionSavedIndices, setActionSavedIndices] = useState<number[]>([])
+  const [actionSaving, setActionSaving] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -192,6 +196,25 @@ export default function AdvisorPage() {
     }
   }
 
+  const addToActions = async (turnIdx: number) => {
+    if (!shopProfile || !actionText.trim() || actionSaving) return
+    setActionSaving(true)
+    try {
+      await fetch('/api/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: shopProfile.id, content: actionText.trim() }),
+      })
+      setActionSavedIndices(prev => [...prev, turnIdx])
+      setActionOpenIdx(null)
+      setActionText('')
+    } catch {
+      // サイレントフェイル
+    } finally {
+      setActionSaving(false)
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.shiftKey && e.key === 'Enter') { e.preventDefault(); handleSend() }
   }
@@ -259,6 +282,53 @@ export default function AdvisorPage() {
               return (
                 <div key={i} className="space-y-3">
                   {turn.members.map(m => <MemberBubble key={m.key} memberKey={m.key} text={m.text} />)}
+                  {/* 施策に追加ボタン */}
+                  {actionSavedIndices.includes(i) ? (
+                    <div className="flex justify-end">
+                      <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                        <CheckCircle size={13} /> 施策に追加済み
+                      </span>
+                    </div>
+                  ) : actionOpenIdx === i ? (
+                    <div className="bg-white border border-[#E5E9F2] rounded-xl p-3 space-y-2">
+                      <p className="text-xs font-medium text-[#6B7280]">施策メモに追加する内容を入力</p>
+                      <textarea
+                        value={actionText}
+                        onChange={e => setActionText(e.target.value)}
+                        placeholder="例：SNS投稿を週3回実施する"
+                        rows={2}
+                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => { setActionOpenIdx(null); setActionText('') }}
+                          className="text-xs text-[#6B7280] hover:text-[#111827] px-3 py-1.5"
+                        >
+                          キャンセル
+                        </button>
+                        <button
+                          onClick={() => addToActions(i)}
+                          disabled={!actionText.trim() || actionSaving}
+                          className="flex items-center gap-1 text-xs bg-[#E8320A] text-white rounded-lg px-3 py-1.5 hover:bg-[#c92b09] disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Plus size={12} /> 追加する
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => {
+                          setActionOpenIdx(i)
+                          setActionText(turn.members.map(m => m.text).join('\n\n').slice(0, 100))
+                        }}
+                        className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#E8320A] border border-[#E5E9F2] hover:border-[#E8320A] bg-white rounded-full px-3 py-1.5 transition-colors"
+                      >
+                        <Plus size={12} /> 施策に追加
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
