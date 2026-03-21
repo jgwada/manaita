@@ -83,11 +83,12 @@ export async function callClaudeChatStream(
 export async function callClaudeWithWebSearchStream(
   prompt: string,
   onChunk: (text: string) => void,
-  maxTokens = 10000
+  maxTokens = 10000,
+  model = MODEL
 ): Promise<void> {
   try {
     const stream = await client.messages.stream({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,

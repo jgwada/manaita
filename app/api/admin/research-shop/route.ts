@@ -59,7 +59,7 @@ ${shopContext(shopProfile)}
     let result = ''
     await callClaudeWithWebSearchStream(prompt, (text) => {
       result += text
-    }, 2000)
+    }, 2000, 'claude-sonnet-4-6')
 
     await supabaseAdmin
       .from('shops')
