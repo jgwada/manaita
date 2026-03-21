@@ -63,6 +63,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             googleReviewUrl: data.shop.google_review_url,
             placeId: data.shop.place_id,
             lineOfficialUrl: data.shop.line_official_url,
+            tabelogUrl: data.shop.tabelog_url,
             researchCache: data.shop.research_cache,
             createdAt: data.shop.created_at,
           })

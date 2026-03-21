@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { id, name, area, industry, priceRange, seats, googleReviewUrl, placeId, lineOfficialUrl } = body
+    const { id, name, area, industry, priceRange, seats, googleReviewUrl, placeId, lineOfficialUrl, tabelogUrl } = body
 
     const { error } = await supabase.from('shops').update({
       name,
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       google_review_url: googleReviewUrl,
       place_id: placeId || null,
       line_official_url: lineOfficialUrl,
+      tabelog_url: tabelogUrl || null,
     }).eq('id', id)
 
     if (error) throw error

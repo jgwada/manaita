@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     const { data: shop, error: shopError } = await supabaseAdmin
       .from('shops')
-      .select('id, name, area, industry, google_review_url')
+      .select('id, name, area, industry, google_review_url, tabelog_url')
       .eq('public_token', publicToken)
       .single()
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     if (rating >= 4) {
       const prompt = `
-あなたはGoogle口コミを書くお客様です。以下の情報をもとに、自然でリアルなGoogle口コミ文を生成してください。
+あなたは飲食店の口コミを書くお客様です。以下の情報をもとに、自然でリアルな口コミ文を生成してください。
 
 店名：${shop.name}
 地域：${shop.area}
@@ -66,6 +66,7 @@ export async function POST(req: Request) {
         rating,
         generatedReview,
         googleReviewUrl: rating >= 4 ? shop.google_review_url : null,
+        tabelogUrl: rating >= 4 ? shop.tabelog_url : null,
       }
     })
   } catch (error) {

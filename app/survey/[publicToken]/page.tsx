@@ -25,6 +25,7 @@ export default function SurveyPage() {
   const [step, setStep] = useState<Step>('form')
   const [generatedReview, setGeneratedReview] = useState('')
   const [googleReviewUrl, setGoogleReviewUrl] = useState('')
+  const [tabelogUrl, setTabelogUrl] = useState('')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,6 +64,7 @@ export default function SurveyPage() {
       if (rating >= 4 && data.data.generatedReview) {
         setGeneratedReview(data.data.generatedReview)
         setGoogleReviewUrl(data.data.googleReviewUrl || '')
+        setTabelogUrl(data.data.tabelogUrl || '')
         setStep('review')
       } else {
         setStep('thanks')
@@ -88,7 +90,7 @@ export default function SurveyPage() {
             <div className="text-4xl mb-2">🎉</div>
             <h1 className="text-lg font-bold text-[#111008]">ありがとうございます！</h1>
             <p className="text-sm text-[#9A8880] mt-1">
-              よろしければ、Googleでもご感想をお聞かせください
+              よろしければ、口コミサイトにもご感想をお聞かせください
             </p>
           </div>
 
@@ -111,9 +113,20 @@ export default function SurveyPage() {
               href={googleReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full bg-[#E8320A] text-white rounded-xl py-3.5 font-medium text-sm text-center mb-3"
+              className="flex items-center justify-center gap-2 w-full bg-[#E8320A] text-white rounded-xl py-3.5 font-medium text-sm text-center mb-3"
             >
-              Googleで口コミを投稿する
+              <span>🔍</span> Googleで口コミを投稿する
+            </a>
+          )}
+
+          {tabelogUrl && (
+            <a
+              href={tabelogUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#D03A00] text-white rounded-xl py-3.5 font-medium text-sm text-center mb-3"
+            >
+              <span>🍽️</span> 食べログで口コミを投稿する
             </a>
           )}
 

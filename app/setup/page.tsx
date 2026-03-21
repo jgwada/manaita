@@ -19,6 +19,7 @@ export default function SetupPage() {
     seats: '',
     googleReviewUrl: '',
     placeId: '',
+    tabelogUrl: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,6 +35,7 @@ export default function SetupPage() {
         seats: String(shopProfile.seats || ''),
         googleReviewUrl: shopProfile.googleReviewUrl || '',
         placeId: shopProfile.placeId || '',
+        tabelogUrl: shopProfile.tabelogUrl || '',
       })
     }
   }, [shopProfile])
@@ -56,6 +58,7 @@ export default function SetupPage() {
           seats: form.seats ? parseInt(form.seats) : null,
           googleReviewUrl: form.googleReviewUrl,
           placeId: form.placeId,
+          tabelogUrl: form.tabelogUrl,
         }),
       })
       const data = await res.json()
@@ -87,6 +90,7 @@ export default function SetupPage() {
     { key: 'seats', label: '席数', placeholder: '例：30', required: false },
     { key: 'googleReviewUrl', label: 'Google口コミURL', placeholder: 'https://...', required: false },
     { key: 'placeId', label: 'Google Place ID', placeholder: 'ChIJ...（口コミ取得に必要）', required: false },
+    { key: 'tabelogUrl', label: '食べログURL', placeholder: 'https://tabelog.com/...', required: false },
   ]
 
   return (
