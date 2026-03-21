@@ -11,7 +11,7 @@ import {
   BookOpen, TrendingUp, DollarSign, Calculator,
   Calendar, UserCheck, Search, Tag,
   MessageSquare, MessageCircle, FileText, MapPin,
-  Zap, Newspaper
+  Zap, Newspaper, Rocket
 } from 'lucide-react'
 
 const phase1Tools = [
@@ -42,6 +42,13 @@ const phase3Tools = [
   { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price', disabled: true, gradient: 'from-amber-400 to-orange-500' },
 ]
 
+const getStarterTools = (hasResearch: boolean) => [
+  { icon: Instagram, name: 'SNS投稿文', href: '/tools/sns', gradient: 'from-pink-400 to-rose-500' },
+  { icon: Star, name: 'Google口コミ返信', href: '/tools/review', gradient: 'from-yellow-400 to-orange-500' },
+  ...(hasResearch ? [{ icon: MessageSquare, name: '集客アドバイザー', href: '/tools/advisor', gradient: 'from-blue-400 to-violet-500' }] : []),
+  { icon: MessageCircle, name: 'なんでも経営相談', href: '/tools/chat', gradient: 'from-orange-400 to-red-500' },
+]
+
 export default function HomePage() {
   const router = useRouter()
   const { shopProfile, user } = useAppStore()
@@ -51,6 +58,9 @@ export default function HomePage() {
       router.push('/setup')
     }
   }, [user, shopProfile, router])
+
+  const hasResearch = !!shopProfile?.researchCache
+  const starterTools = getStarterTools(hasResearch)
 
   return (
     <AuthGuard>
@@ -72,6 +82,26 @@ export default function HomePage() {
               >
                 設定
               </button>
+            </div>
+          )}
+
+          {/* まずここから */}
+          {shopProfile?.name && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-red-500">
+                  <Rocket size={12} className="text-white" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#E8320A] uppercase tracking-widest">まずここから</span>
+                  <span className="text-xs text-[#6B7280] ml-2">おすすめの使い始め方</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {starterTools.map((tool) => (
+                  <ToolCard key={tool.href} {...tool} description="" />
+                ))}
+              </div>
             </div>
           )}
 
