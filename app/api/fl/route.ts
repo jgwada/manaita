@@ -98,3 +98,12 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: false, error: String(e) })
   }
 }
+
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ success: false, error: 'id required' })
+  const { error } = await supabaseAdmin.from('fl_monthly_records').delete().eq('id', id)
+  if (error) return NextResponse.json({ success: false, error: error.message })
+  return NextResponse.json({ success: true })
+}

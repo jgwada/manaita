@@ -72,6 +72,7 @@ export default function FlPage() {
 
   const [history, setHistory] = useState<HistoryRecord[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
 
   // menu cost form
   const [menuName, setMenuName] = useState('')
@@ -181,6 +182,14 @@ export default function FlPage() {
     setSaving(false)
   }
 
+
+  const deleteHistory = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('この月の記録を削除しますか？')) return
+    setHistory(prev => prev.filter(h => h.id !== id))
+    if (expandedHistoryId === id) setExpandedHistoryId(null)
+    await fetch(`/api/fl?id=${id}`, { method: 'DELETE' })
+  }
 
   const addMenuItem = async () => {
     if (!shopProfile?.id || !menuName || !sellPrice || !costPrice) return
@@ -544,23 +553,61 @@ export default function FlPage() {
                       const color = !h.fl_ratio ? '#9CA3AF' : h.fl_ratio < 55 ? '#16a34a' : h.fl_ratio < 60 ? '#ca8a04' : '#dc2626'
                       const label = !h.fl_ratio ? '—' : h.fl_ratio < 55 ? '健全' : h.fl_ratio < 60 ? '要注意' : '危険'
                       const isActive = h.year === year && h.month === month
+                      const isExpanded = expandedHistoryId === h.id
+                      const fTotal = h.food_cost + h.beverage_cost
                       return (
-                        <button
-                          key={h.id}
-                          onClick={() => { setYear(h.year); setMonth(h.month); setShowHistory(false) }}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${isActive ? 'border-[#E8320A] bg-orange-50' : 'border-[#F1F3F8] hover:border-[#E5E9F2] bg-[#FAFAFA]'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-[#111827]">{h.year}年{h.month}月</span>
-                            <span className="text-xs font-bold" style={{ color }}>{label}</span>
+                        <div key={h.id} className={`rounded-xl border transition-colors ${isActive ? 'border-[#E8320A] bg-orange-50' : 'border-[#F1F3F8] bg-[#FAFAFA]'}`}>
+                          {/* ヘッダー行 */}
+                          <div className="flex items-center gap-2 px-3 py-2.5">
+                            <button
+                              onClick={() => setExpandedHistoryId(isExpanded ? null : h.id)}
+                              className="flex-1 flex items-center justify-between min-w-0"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-[#111827]">{h.year}年{h.month}月</span>
+                                <span className="text-xs font-bold" style={{ color }}>{label}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-[#6B7280]">
+                                <span>売上 {fmt(h.revenue)}円</span>
+                                {h.fl_ratio != null && (
+                                  <span className="text-sm font-bold" style={{ color }}>{h.fl_ratio.toFixed(1)}%</span>
+                                )}
+                                <span className="text-[10px] text-[#9CA3AF]">{isExpanded ? '▲' : '▼'}</span>
+                              </div>
+                            </button>
+                            {/* 編集・削除 */}
+                            <div className="flex items-center gap-1 flex-shrink-0 ml-1">
+                              <button
+                                onClick={() => { setYear(h.year); setMonth(h.month); setShowHistory(false) }}
+                                className="text-[10px] text-[#6B7280] border border-[#E5E9F2] rounded px-1.5 py-1 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors"
+                              >編集</button>
+                              <button
+                                onClick={(e) => deleteHistory(h.id, e)}
+                                className="text-[#C4C9D4] hover:text-red-400 transition-colors p-1"
+                              ><Trash2 size={12} /></button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                            <span>売上 {fmt(h.revenue)}円</span>
-                            {h.fl_ratio != null && (
-                              <span className="text-base font-bold" style={{ color }}>{h.fl_ratio.toFixed(1)}%</span>
-                            )}
-                          </div>
-                        </button>
+
+                          {/* 展開：内訳 */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 border-t border-[#F1F3F8] pt-2.5 space-y-1.5">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {[
+                                  { label: 'フード仕入れ', value: h.food_cost, ratio: h.food_ratio },
+                                  { label: 'ビバレッジ仕入れ', value: h.beverage_cost, ratio: h.beverage_ratio },
+                                  { label: '食材費合計', value: fTotal, ratio: h.revenue > 0 ? Math.round(fTotal / h.revenue * 1000) / 10 : null },
+                                  { label: '人件費', value: h.labor_cost, ratio: h.labor_ratio },
+                                ].map(({ label, value, ratio }) => (
+                                  <div key={label} className="bg-white rounded-lg px-2.5 py-2">
+                                    <div className="text-[10px] text-[#9CA3AF]">{label}</div>
+                                    <div className="text-xs font-bold text-[#111827]">{fmt(value)}円</div>
+                                    {ratio != null && <div className="text-[10px] text-[#6B7280]">{ratio.toFixed(1)}%</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
