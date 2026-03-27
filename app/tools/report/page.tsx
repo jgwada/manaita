@@ -40,6 +40,11 @@ export default function ReportPage() {
   const [lunchCustomers, setLunchCustomers] = useState('')
   const [dinnerCustomers, setDinnerCustomers] = useState('')
 
+  // 営業タイプ
+  const [hasLunch, setHasLunch] = useState(true)
+  const [hasDinner, setHasDinner] = useState(true)
+  const [isToshi, setIsToshi] = useState(false)
+
   // 天気
   const [weatherCondition, setWeatherCondition] = useState('')
   const [temperature, setTemperature] = useState<number | null>(null)
@@ -95,6 +100,9 @@ export default function ReportPage() {
       setDinnerSales(r.dinner_sales != null ? String(r.dinner_sales) : '')
       setLunchCustomers(r.lunch_customers != null ? String(r.lunch_customers) : '')
       setDinnerCustomers(r.dinner_customers != null ? String(r.dinner_customers) : '')
+      setHasLunch(r.lunch_sales != null || r.lunch_customers != null)
+      setHasDinner(r.dinner_sales != null || r.dinner_customers != null)
+      setIsToshi(false)
       setWeatherCondition(r.weather_condition ?? '')
       setTemperature(r.temperature ?? null)
       setTempVsAvg(r.temp_vs_avg ?? null)
@@ -104,6 +112,7 @@ export default function ReportPage() {
       setCurrentRecord(null)
       setLunchSales(''); setDinnerSales('')
       setLunchCustomers(''); setDinnerCustomers('')
+      setHasLunch(true); setHasDinner(true); setIsToshi(false)
       setWeatherCondition(''); setTemperature(null); setTempVsAvg(null)
       setMemo(''); setAiReport('')
     }
@@ -175,10 +184,10 @@ export default function ReportPage() {
         body: JSON.stringify({
           shopProfile,
           date,
-          lunchSales: lunchSales ? parseNum(lunchSales) : null,
-          dinnerSales: dinnerSales ? parseNum(dinnerSales) : null,
-          lunchCustomers: lunchCustomers ? parseNum(lunchCustomers) : null,
-          dinnerCustomers: dinnerCustomers ? parseNum(dinnerCustomers) : null,
+          lunchSales: (hasLunch || isToshi) && lunchSales ? parseNum(lunchSales) : null,
+          dinnerSales: hasDinner && !isToshi && dinnerSales ? parseNum(dinnerSales) : null,
+          lunchCustomers: (hasLunch || isToshi) && lunchCustomers ? parseNum(lunchCustomers) : null,
+          dinnerCustomers: hasDinner && !isToshi && dinnerCustomers ? parseNum(dinnerCustomers) : null,
           weatherCondition: weatherCondition || null,
           temperature,
           tempVsAvg,
@@ -217,10 +226,10 @@ export default function ReportPage() {
         body: JSON.stringify({
           shopId: shopProfile.id,
           date,
-          lunchSales: lunchSales ? parseNum(lunchSales) : null,
-          dinnerSales: dinnerSales ? parseNum(dinnerSales) : null,
-          lunchCustomers: lunchCustomers ? parseNum(lunchCustomers) : null,
-          dinnerCustomers: dinnerCustomers ? parseNum(dinnerCustomers) : null,
+          lunchSales: (hasLunch || isToshi) && lunchSales ? parseNum(lunchSales) : null,
+          dinnerSales: hasDinner && !isToshi && dinnerSales ? parseNum(dinnerSales) : null,
+          lunchCustomers: (hasLunch || isToshi) && lunchCustomers ? parseNum(lunchCustomers) : null,
+          dinnerCustomers: hasDinner && !isToshi && dinnerCustomers ? parseNum(dinnerCustomers) : null,
           weatherCondition: weatherCondition || null,
           temperature,
           tempVsAvg,
@@ -259,8 +268,12 @@ export default function ReportPage() {
     }
   }
 
-  const totalSales = (lunchSales ? parseNum(lunchSales) : 0) + (dinnerSales ? parseNum(dinnerSales) : 0)
-  const totalCustomers = (lunchCustomers ? parseNum(lunchCustomers) : 0) + (dinnerCustomers ? parseNum(dinnerCustomers) : 0)
+  const lunchSalesNum = (hasLunch || isToshi) && lunchSales ? parseNum(lunchSales) : 0
+  const dinnerSalesNum = hasDinner && !isToshi && dinnerSales ? parseNum(dinnerSales) : 0
+  const lunchCustomersNum = (hasLunch || isToshi) && lunchCustomers ? parseNum(lunchCustomers) : 0
+  const dinnerCustomersNum = hasDinner && !isToshi && dinnerCustomers ? parseNum(dinnerCustomers) : 0
+  const totalSales = lunchSalesNum + dinnerSalesNum
+  const totalCustomers = lunchCustomersNum + dinnerCustomersNum
   const avgSpend = totalCustomers > 0 ? Math.round(totalSales / totalCustomers) : null
 
   const isToday = date === toDateStr(new Date())
@@ -318,49 +331,80 @@ export default function ReportPage() {
 
           {/* 売上・客数入力 */}
           <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-3">売上・客数</p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-xs text-[#6B7280] mb-1 block">ランチ売上（円）</label>
-                <input
-                  type="text" inputMode="numeric"
-                  value={lunchSales}
-                  onChange={e => setLunchSales(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-[#6B7280] mb-1 block">ランチ客数（名）</label>
-                <input
-                  type="text" inputMode="numeric"
-                  value={lunchCustomers}
-                  onChange={e => setLunchCustomers(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-[#6B7280] mb-1 block">ディナー売上（円）</label>
-                <input
-                  type="text" inputMode="numeric"
-                  value={dinnerSales}
-                  onChange={e => setDinnerSales(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-[#6B7280] mb-1 block">ディナー客数（名）</label>
-                <input
-                  type="text" inputMode="numeric"
-                  value={dinnerCustomers}
-                  onChange={e => setDinnerCustomers(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]"
-                />
+            {/* 営業タイプ選択 */}
+            <div className="flex items-center gap-4 mb-3 flex-wrap">
+              <p className="text-sm font-bold text-[#111827]">売上・客数</p>
+              <div className="flex items-center gap-3 ml-auto flex-wrap">
+                {!isToshi && (
+                  <>
+                    <label className="flex items-center gap-1.5 text-sm text-[#374151] cursor-pointer select-none">
+                      <input type="checkbox" checked={hasLunch} onChange={e => setHasLunch(e.target.checked)} className="accent-[#E8320A]" />
+                      ランチ
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm text-[#374151] cursor-pointer select-none">
+                      <input type="checkbox" checked={hasDinner} onChange={e => setHasDinner(e.target.checked)} className="accent-[#E8320A]" />
+                      ディナー
+                    </label>
+                  </>
+                )}
+                <label className="flex items-center gap-1.5 text-sm text-[#374151] cursor-pointer select-none">
+                  <input type="checkbox" checked={isToshi} onChange={e => { setIsToshi(e.target.checked); if (e.target.checked) { setHasLunch(true); setHasDinner(true) } }} className="accent-[#E8320A]" />
+                  通し営業
+                </label>
               </div>
             </div>
+
+            {isToshi ? (
+              /* 通し営業：一本化フォーム */
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-[#6B7280] mb-1 block">売上（円）</label>
+                  <input type="text" inputMode="numeric" value={lunchSales} onChange={e => setLunchSales(e.target.value)} placeholder="0"
+                    className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                </div>
+                <div>
+                  <label className="text-xs text-[#6B7280] mb-1 block">客数（名）</label>
+                  <input type="text" inputMode="numeric" value={lunchCustomers} onChange={e => setLunchCustomers(e.target.value)} placeholder="0"
+                    className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                </div>
+              </div>
+            ) : (
+              /* ランチ・ディナー個別フォーム */
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {hasLunch && (
+                  <>
+                    <div>
+                      <label className="text-xs text-[#6B7280] mb-1 block">ランチ売上（円）</label>
+                      <input type="text" inputMode="numeric" value={lunchSales} onChange={e => setLunchSales(e.target.value)} placeholder="0"
+                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#6B7280] mb-1 block">ランチ客数（名）</label>
+                      <input type="text" inputMode="numeric" value={lunchCustomers} onChange={e => setLunchCustomers(e.target.value)} placeholder="0"
+                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                    </div>
+                  </>
+                )}
+                {hasDinner && (
+                  <>
+                    <div>
+                      <label className="text-xs text-[#6B7280] mb-1 block">ディナー売上（円）</label>
+                      <input type="text" inputMode="numeric" value={dinnerSales} onChange={e => setDinnerSales(e.target.value)} placeholder="0"
+                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#6B7280] mb-1 block">ディナー客数（名）</label>
+                      <input type="text" inputMode="numeric" value={dinnerCustomers} onChange={e => setDinnerCustomers(e.target.value)} placeholder="0"
+                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]" />
+                    </div>
+                  </>
+                )}
+                {!hasLunch && !hasDinner && (
+                  <p className="col-span-2 text-xs text-[#9CA3AF] text-center py-2">ランチ・ディナーどちらかにチェックを入れてください</p>
+                )}
+              </div>
+            )}
+
             {(totalSales > 0 || totalCustomers > 0) && (
               <div className="bg-[#F1F3F8] rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
                 <div>
