@@ -249,7 +249,7 @@ export default function FlPage() {
       <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
         <div className="max-w-2xl mx-auto px-4 py-6">
-          <PageHeader icon={Calculator} title="FLコスト計算" description="食材費・人件費の比率で経営の健全度を確認" />
+          <PageHeader title="FLコスト計算" description="食材費・人件費の比率で経営の健全度を確認" />
 
           {/* 月ナビゲーション */}
           <div className="flex items-center justify-center gap-4 mb-5">
