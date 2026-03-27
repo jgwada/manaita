@@ -437,10 +437,14 @@ export default function ReportPage() {
               </button>
             </div>
             {generateError && <p className="text-xs text-red-500 mb-2">{generateError}</p>}
-            {aiReport ? (
-              <div className="bg-[#FFFBF5] border border-orange-100 rounded-xl p-3">
-                <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{aiReport}</p>
-              </div>
+            {aiReport || generating ? (
+              <textarea
+                value={aiReport}
+                onChange={e => setAiReport(e.target.value)}
+                placeholder={generating ? 'AI日報を生成中...' : ''}
+                rows={8}
+                className="w-full bg-[#FFFBF5] border border-orange-100 rounded-xl px-3 py-3 text-sm text-[#111827] leading-relaxed focus:outline-none focus:border-orange-300 resize-none"
+              />
             ) : (
               <p className="text-xs text-[#9CA3AF]">売上・客数を入力後、AI日報を自動生成できます</p>
             )}
@@ -448,14 +452,28 @@ export default function ReportPage() {
 
           {/* 保存ボタン */}
           {saveError && <p className="text-sm text-red-500 mb-2">{saveError}</p>}
-          <button
-            onClick={handleSave}
-            disabled={saving || isFuture}
-            className="w-full flex items-center justify-center gap-2 bg-[#E8320A] text-white font-bold py-3 rounded-2xl hover:bg-[#c92b09] transition-colors disabled:opacity-50 mb-6"
-          >
-            <Save size={18} />
-            {saving ? '保存中...' : saved ? '保存しました！' : '日報を保存'}
-          </button>
+          {currentRecord && (
+            <p className="text-xs text-[#6B7280] mb-2 text-center">保存済み — 編集して再保存できます</p>
+          )}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={handleSave}
+              disabled={saving || isFuture}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#E8320A] text-white font-bold py-3 rounded-2xl hover:bg-[#c92b09] transition-colors disabled:opacity-50"
+            >
+              <Save size={18} />
+              {saving ? '保存中...' : saved ? '保存しました！' : currentRecord ? '上書き保存' : '日報を保存'}
+            </button>
+            {currentRecord && (
+              <button
+                onClick={() => handleDelete(currentRecord.id)}
+                className="flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-red-400 font-medium px-4 py-3 rounded-2xl hover:bg-red-50 hover:border-red-200 transition-colors"
+              >
+                <Trash2 size={16} />
+                削除
+              </button>
+            )}
+          </div>
 
           {/* 履歴 */}
           <div className="bg-white border border-[#E5E9F2] rounded-2xl overflow-hidden">
