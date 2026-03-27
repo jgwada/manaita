@@ -27,7 +27,7 @@ const phase1Tools = [
 const phase2Tools = [
   { icon: FileText, name: 'メニュー表・POP', description: '料理のキャッチコピーと説明文を自動生成', href: '/tools/menu', disabled: true, gradient: 'from-orange-400 to-amber-500' },
   { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual', gradient: 'from-indigo-400 to-blue-500' },
-  { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', disabled: true, gradient: 'from-green-400 to-emerald-500' },
+  { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', gradient: 'from-green-400 to-emerald-500' },
   { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', disabled: true, gradient: 'from-cyan-400 to-teal-500' },
   { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/fl', gradient: 'from-lime-400 to-green-500' },
   { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', gradient: 'from-orange-400 to-red-500' },

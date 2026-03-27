@@ -43,6 +43,23 @@ export interface FLMonthlyRecord {
   updated_at: string
 }
 
+export interface DailyReport {
+  id: string
+  shop_id: string
+  date: string
+  lunch_sales: number | null
+  dinner_sales: number | null
+  lunch_customers: number | null
+  dinner_customers: number | null
+  weather_condition: string | null
+  temperature: number | null
+  temp_vs_avg: number | null
+  memo: string | null
+  ai_report: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface MenuCostItem {
   id: string
   shop_id: string
