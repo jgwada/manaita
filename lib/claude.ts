@@ -43,8 +43,9 @@ export async function callClaudeStream(
       }
     }
   } catch (error) {
-    console.error('Claude Stream error:', error)
-    throw new Error('AI生成に失敗しました。もう一度お試しください。')
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Claude Stream error:', msg)
+    throw new Error(msg)
   }
 }
 

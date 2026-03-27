@@ -29,8 +29,8 @@ const phase2Tools = [
   { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual', gradient: 'from-indigo-400 to-blue-500' },
   { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', disabled: true, gradient: 'from-green-400 to-emerald-500' },
   { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', disabled: true, gradient: 'from-cyan-400 to-teal-500' },
-  { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/cost', disabled: true, gradient: 'from-lime-400 to-green-500' },
-  { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', disabled: true, gradient: 'from-orange-400 to-red-500' },
+  { icon: DollarSign, name: '原価計算', description: '食材費から原価率を自動計算してアドバイス', href: '/tools/fl', gradient: 'from-lime-400 to-green-500' },
+  { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', gradient: 'from-orange-400 to-red-500' },
   { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar', disabled: true, gradient: 'from-purple-400 to-pink-500' },
   { icon: UserCheck, name: '常連客管理', description: '来店頻度を記録・長期来店なしの顧客をアラート', href: '/tools/customers', disabled: true, gradient: 'from-rose-400 to-pink-500' },
 ]
@@ -75,10 +75,12 @@ export default function HomePage() {
 
   const [toolCounts, setToolCounts] = useState<Record<string, number>>({})
   const [lastUsed, setLastUsed] = useState<Record<string, string>>({})
+  const [usageLoaded, setUsageLoaded] = useState(false)
   const [actions, setActions] = useState<ActionRecord[]>([])
   const [actionInput, setActionInput] = useState('')
   const [addingAction, setAddingAction] = useState(false)
   const [nudgeDismissed, setNudgeDismissed] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   useEffect(() => {
     if (user && user.role === 'shop' && shopProfile && !shopProfile.name) {
@@ -90,7 +92,10 @@ export default function HomePage() {
     if (!shopProfile?.id) return
     fetch(`/api/my-usage?shopId=${shopProfile.id}`)
       .then(r => r.json())
-      .then(d => { if (d.success) { setToolCounts(d.toolCounts); setLastUsed(d.lastUsed) } })
+      .then(d => {
+        if (d.success) { setToolCounts(d.toolCounts); setLastUsed(d.lastUsed) }
+        setUsageLoaded(true)
+      })
     fetch(`/api/actions?shopId=${shopProfile.id}`)
       .then(r => r.json())
       .then(d => { if (d.success) setActions(d.data) })
@@ -127,13 +132,22 @@ export default function HomePage() {
     await fetch(`/api/actions?id=${id}`, { method: 'DELETE' })
   }
 
-  // ナッジ：過去に使ったことがあるが一定日数使っていないツール
-  const nudge = !nudgeDismissed ? NUDGE_RULES.find(rule => {
-    const last = lastUsed[rule.tool]
-    if (!last) return false
-    const daysSince = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24)
-    return daysSince >= rule.days
-  }) ?? null : null
+  // ナッジ：新規ユーザー or 一定日数使っていないツール
+  const isNewUser = usageLoaded &&
+    Object.keys(toolCounts).length === 0 &&
+    shopProfile?.createdAt &&
+    (Date.now() - new Date(shopProfile.createdAt).getTime()) / (1000 * 60 * 60 * 24) >= 3
+
+  const nudge = !nudgeDismissed ? (
+    isNewUser
+      ? { message: 'まずSNS投稿文やGoogle口コミ返信を試してみましょう！', href: '/tools/sns' }
+      : NUDGE_RULES.find(rule => {
+          const last = lastUsed[rule.tool]
+          if (!last) return false
+          const daysSince = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24)
+          return daysSince >= rule.days
+        }) ?? null
+  ) : null
 
   // よく使う機能：利用回数上位（重複を排除してhref単位で表示）
   const topTools = Object.entries(toolCounts)
@@ -238,20 +252,32 @@ export default function HomePage() {
                     施策がありません。アドバイザーに相談した後、実行する施策をメモしましょう。
                   </p>
                 )}
-                {actions.map(action => (
+                {actions.filter(a => !a.done).map(action => (
                   <div key={action.id} className="flex items-center gap-2.5 py-2.5 border-b border-[#F1F3F8] last:border-0">
-                    <button onClick={() => toggleAction(action.id, !action.done)} className="flex-shrink-0">
-                      {action.done
-                        ? <CheckSquare size={16} className="text-green-500" />
-                        : <Square size={16} className="text-[#9A8880]" />}
+                    <button onClick={() => toggleAction(action.id, true)} className="flex-shrink-0">
+                      <Square size={16} className="text-[#9A8880]" />
                     </button>
-                    <p className={`text-sm flex-1 leading-snug ${action.done ? 'line-through text-[#9A8880]' : 'text-[#111827]'}`}>
-                      {action.content}
-                    </p>
-                    <button
-                      onClick={() => deleteAction(action.id)}
-                      className="flex-shrink-0 text-[#E5E9F2] hover:text-red-400 transition-colors"
-                    >
+                    <p className="text-sm flex-1 leading-snug text-[#111827]">{action.content}</p>
+                    <button onClick={() => deleteAction(action.id)} className="flex-shrink-0 text-[#E5E9F2] hover:text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                {actions.some(a => a.done) && (
+                  <button
+                    onClick={() => setShowCompleted(v => !v)}
+                    className="text-xs text-[#9A8880] hover:text-[#6B7280] mt-2 mb-1 transition-colors"
+                  >
+                    {showCompleted ? '▲ 完了済みを隠す' : `▼ 完了済み ${actions.filter(a => a.done).length}件を表示`}
+                  </button>
+                )}
+                {showCompleted && actions.filter(a => a.done).map(action => (
+                  <div key={action.id} className="flex items-center gap-2.5 py-2.5 border-b border-[#F1F3F8] last:border-0">
+                    <button onClick={() => toggleAction(action.id, false)} className="flex-shrink-0">
+                      <CheckSquare size={16} className="text-green-500" />
+                    </button>
+                    <p className="text-sm flex-1 leading-snug line-through text-[#9A8880]">{action.content}</p>
+                    <button onClick={() => deleteAction(action.id)} className="flex-shrink-0 text-[#E5E9F2] hover:text-red-400 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>

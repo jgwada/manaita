@@ -11,6 +11,46 @@ export interface ShopProfile {
   tabelogUrl?: string
   researchCache?: string
   createdAt: string
+  latestFlRatio?: number
+  latestFlMonth?: string
+}
+
+export interface StaffRow {
+  id: string
+  name: string
+  type: 'hourly' | 'salary'
+  hourlyWage: number
+  hours: number
+  monthlySalary: number
+}
+
+export interface FLMonthlyRecord {
+  id: string
+  shop_id: string
+  year: number
+  month: number
+  revenue: number
+  food_cost: number
+  beverage_cost: number
+  labor_cost: number
+  fl_ratio: number | null
+  food_ratio: number | null
+  beverage_ratio: number | null
+  labor_ratio: number | null
+  ai_comment: string | null
+  staff_details: StaffRow[]
+  created_at: string
+  updated_at: string
+}
+
+export interface MenuCostItem {
+  id: string
+  shop_id: string
+  menu_name: string
+  sell_price: number
+  cost_price: number
+  category: 'food' | 'beverage'
+  sort_order: number
 }
 
 export interface User {
