@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const files = formData.getAll('file') as File[]
 
     const promptText = buildBanquetGenPrompt(shopProfile, menuText || null, priceMin, priceMax, ingredientMode, files.length > 0, wishes)
-    logUsage(shopProfile.id, 'banquet-gen', `${priceMin}〜${priceMax}円`)
+    const inputSummary = `${priceMin}〜${priceMax}円`
 
     let messageContent: Anthropic.MessageParam['content']
 
@@ -52,15 +52,18 @@ export async function POST(req: Request) {
     }
 
     const encoder = new TextEncoder()
+    const outputChunks: string[] = []
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await callClaudeWithContentStream(messageContent, (text) => {
+            outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
           })
         } catch {
           controller.enqueue(encoder.encode('ERROR:AI生成に失敗しました。もう一度お試しください。'))
         } finally {
+          logUsage(shopProfile.id, 'banquet-gen', inputSummary, outputChunks.join(''))
           controller.close()
         }
       }

@@ -14,18 +14,20 @@ export async function POST(req: Request) {
     }
 
     const prompt = buildResearchPrompt(shopProfile, competitorInfo)
-    logUsage(shopProfile.id, 'research')
     const encoder = new TextEncoder()
+    const outputChunks: string[] = []
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await callClaudeWithContentStream(prompt, (text) => {
+            outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
           }, 8000)
         } catch {
           controller.enqueue(encoder.encode('ERROR:分析に失敗しました。もう一度お試しください。'))
         } finally {
+          logUsage(shopProfile.id, 'research', undefined, outputChunks.join(''))
           controller.close()
         }
       }

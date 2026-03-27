@@ -47,13 +47,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: '未対応のツールです。' })
     }
 
-    logUsage(shopProfile.id, toolName, inputSummary)
-
     const encoder = new TextEncoder()
+    const outputChunks: string[] = []
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await callClaudeStream(prompt, (text) => {
+            outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
           })
         } catch {
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
             encoder.encode('ERROR:AI生成に失敗しました。もう一度お試しください。')
           )
         } finally {
+          logUsage(shopProfile.id, toolName, inputSummary, outputChunks.join(''))
           controller.close()
         }
       }

@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
     const query = supabaseAdmin
       .from('usage_logs')
-      .select('id, shop_id, tool_name, input_summary, created_at, shops(name)')
+      .select('id, shop_id, tool_name, input_summary, output_summary, created_at, shops(name)')
       .order('created_at', { ascending: false })
       .limit(500)
 

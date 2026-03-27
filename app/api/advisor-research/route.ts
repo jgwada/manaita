@@ -39,12 +39,13 @@ ${shopContext(shopProfile)}${urlSection}
 情報が見つからない項目は「情報なし」と明記してください。
 `
 
-    logUsage(shopProfile.id, 'advisor-research')
     const encoder = new TextEncoder()
+    const outputChunks: string[] = []
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await callClaudeWithWebSearchStream(prompt, (text) => {
+            outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
           })
         } catch (err) {
@@ -52,6 +53,7 @@ ${shopContext(shopProfile)}${urlSection}
           console.error('advisor-research stream error:', msg)
           controller.enqueue(encoder.encode(`ERROR:${msg}`))
         } finally {
+          logUsage(shopProfile.id, 'advisor-research', undefined, outputChunks.join(''))
           controller.close()
         }
       }

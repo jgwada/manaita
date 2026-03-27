@@ -9,7 +9,7 @@ import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mai
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_prev_cache: string | null; research_updated_at: string | null }
 type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
-type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; created_at: string; shops: { name: string } | null }
+type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; output_summary: string | null; created_at: string; shops: { name: string } | null }
 
 const TOOL_LABELS: Record<string, string> = {
   sns: 'SNS文章',
@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
   const [logShopFilter, setLogShopFilter] = useState<string>('all')
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
 
   const handleEnterShop = async (shopId: string) => {
     setEnteringShopId(shopId)
@@ -444,20 +445,52 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log, i) => (
-                    <tr key={log.id} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'}>
-                      <td className="px-4 py-2 text-[#6B7280] whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-4 py-2 text-[#111827] whitespace-nowrap">{log.shops?.name ?? '不明'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className="bg-[#F1F3F8] text-[#111827] rounded-md px-2 py-0.5">
-                          {TOOL_LABELS[log.tool_name] ?? log.tool_name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-[#6B7280] max-w-[160px] truncate">{log.input_summary ?? ''}</td>
-                    </tr>
-                  ))}
+                  {logs.map((log, i) => {
+                    const isExpanded = expandedLogId === log.id
+                    const hasDetail = (log.input_summary?.length ?? 0) > 30 || !!log.output_summary
+                    return (
+                      <tr
+                        key={log.id}
+                        className={`${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'} ${hasDetail ? 'cursor-pointer hover:bg-[#FFF5F3]' : ''} align-top`}
+                        onClick={() => hasDetail && setExpandedLogId(isExpanded ? null : log.id)}
+                      >
+                        <td className="px-4 py-2 text-[#6B7280] whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-4 py-2 text-[#111827] whitespace-nowrap">{log.shops?.name ?? '不明'}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span className="bg-[#F1F3F8] text-[#111827] rounded-md px-2 py-0.5">
+                            {TOOL_LABELS[log.tool_name] ?? log.tool_name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-[#6B7280] max-w-[280px]">
+                          {isExpanded ? (
+                            <div className="space-y-2">
+                              {log.input_summary && (
+                                <div>
+                                  <div className="text-[10px] text-[#9CA3AF] mb-0.5">入力</div>
+                                  <div className="whitespace-pre-wrap break-words">{log.input_summary}</div>
+                                </div>
+                              )}
+                              {log.output_summary && (
+                                <div>
+                                  <div className="text-[10px] text-[#9CA3AF] mb-0.5">出力（先頭300字）</div>
+                                  <div className="whitespace-pre-wrap break-words text-[#374151]">{log.output_summary}</div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className={hasDetail ? 'block truncate' : ''}>{log.input_summary ?? ''}</span>
+                          )}
+                          {hasDetail && (
+                            <span className="text-[#E8320A] text-[10px] ml-1 select-none">
+                              {isExpanded ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

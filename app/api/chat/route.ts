@@ -14,13 +14,15 @@ export async function POST(req: Request) {
     }
 
     const systemPrompt = buildChatSystemPrompt(shopProfile)
-    logUsage(shopProfile.id, 'chat', messages.at(-1)?.content?.slice(0, 50))
+    const inputSummary = messages.at(-1)?.content?.slice(0, 50)
     const encoder = new TextEncoder()
+    const outputChunks: string[] = []
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await callClaudeChatStream(messages, (text) => {
+            outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
           }, systemPrompt, 3000)
         } catch (err) {
@@ -28,6 +30,7 @@ export async function POST(req: Request) {
           console.error('chat stream error:', msg)
           controller.enqueue(encoder.encode(`ERROR:${msg}`))
         } finally {
+          logUsage(shopProfile.id, 'chat', inputSummary, outputChunks.join(''))
           controller.close()
         }
       }
