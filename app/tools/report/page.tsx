@@ -7,7 +7,8 @@ import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import {
   ChevronLeft, ChevronRight, Cloud, Camera, Sparkles,
-  Save, Trash2, History, TrendingUp, TrendingDown, Minus
+  Save, Trash2, History, TrendingUp, TrendingDown, Minus,
+  Target, Pencil, Check
 } from 'lucide-react'
 import { DailyReport } from '@/types'
 
@@ -70,6 +71,14 @@ export default function ReportPage() {
   const [saveError, setSaveError] = useState('')
   const [currentRecord, setCurrentRecord] = useState<DailyReport | null>(null)
 
+  // 月次目標・進捗
+  const [monthlyTarget, setMonthlyTarget] = useState<number | null>(null)
+  const [monthlySalesTotal, setMonthlySalesTotal] = useState<number>(0)
+  const [prevYearTotal, setPrevYearTotal] = useState<number | null>(null)
+  const [settingTarget, setSettingTarget] = useState(false)
+  const [targetInput, setTargetInput] = useState('')
+  const [savingTarget, setSavingTarget] = useState(false)
+
   // 履歴
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
@@ -79,6 +88,7 @@ export default function ReportPage() {
   useEffect(() => {
     if (!shopProfile?.id) return
     loadRecord(date)
+    loadMonthlyProgress(date)
   }, [date, shopProfile?.id])
 
   // 履歴読み込み
@@ -116,6 +126,63 @@ export default function ReportPage() {
       setWeatherCondition(''); setTemperature(null); setTempVsAvg(null)
       setMemo(''); setAiReport('')
     }
+  }
+
+  async function loadMonthlyProgress(d: string) {
+    if (!shopProfile?.id) return
+    const [y, m] = d.split('-').map(Number)
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const mm = String(m).padStart(2, '0')
+    const from = `${y}-${mm}-01`
+    const to = `${y}-${mm}-${String(daysInMonth).padStart(2, '0')}`
+
+    // 月次目標取得
+    const tRes = await fetch(`/api/monthly-target?shopId=${shopProfile.id}&year=${y}&month=${m}`)
+    const tJson = await tRes.json()
+    if (tJson.success) {
+      setMonthlyTarget(tJson.data?.target_sales ?? null)
+      setTargetInput(tJson.data?.target_sales ? String(tJson.data.target_sales) : '')
+    }
+
+    // 今月の累計売上
+    const sRes = await fetch(`/api/daily-report?shopId=${shopProfile.id}&from=${from}&to=${to}`)
+    const sJson = await sRes.json()
+    if (sJson.success && sJson.data) {
+      const total = sJson.data.reduce((sum: number, r: { lunch_sales: number | null; dinner_sales: number | null }) =>
+        sum + (r.lunch_sales ?? 0) + (r.dinner_sales ?? 0), 0)
+      setMonthlySalesTotal(total)
+    }
+
+    // 前年同期の累計売上（作対）
+    const day = d.slice(8)
+    const prevFrom = `${y - 1}-${mm}-01`
+    const prevTo = `${y - 1}-${mm}-${day}`
+    const pRes = await fetch(`/api/daily-report?shopId=${shopProfile.id}&from=${prevFrom}&to=${prevTo}`)
+    const pJson = await pRes.json()
+    if (pJson.success && pJson.data && pJson.data.length > 0) {
+      const total = pJson.data.reduce((sum: number, r: { lunch_sales: number | null; dinner_sales: number | null }) =>
+        sum + (r.lunch_sales ?? 0) + (r.dinner_sales ?? 0), 0)
+      setPrevYearTotal(total > 0 ? total : null)
+    } else {
+      setPrevYearTotal(null)
+    }
+  }
+
+  async function saveTarget() {
+    if (!shopProfile?.id || !targetInput) return
+    setSavingTarget(true)
+    const [y, m] = date.split('-').map(Number)
+    const res = await fetch('/api/monthly-target', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId: shopProfile.id, year: y, month: m, targetSales: parseNum(targetInput) }),
+    })
+    const json = await res.json()
+    if (json.success) {
+      setMonthlyTarget(parseNum(targetInput))
+      setSettingTarget(false)
+    }
+    setSavingTarget(false)
   }
 
   function prevDay() {
@@ -241,10 +308,11 @@ export default function ReportPage() {
       if (json.success) {
         setSaved(true)
         setCurrentRecord(json.data)
-        // 履歴更新
+        // 履歴・進捗更新
         const hres = await fetch(`/api/daily-report?shopId=${shopProfile.id}`)
         const hj = await hres.json()
         if (hj.success) setHistory(hj.data)
+        loadMonthlyProgress(date)
         setTimeout(() => setSaved(false), 2000)
       } else {
         setSaveError(json.error ?? '保存に失敗しました')
@@ -279,6 +347,20 @@ export default function ReportPage() {
   const isToday = date === toDateStr(new Date())
   const isFuture = date > toDateStr(new Date())
 
+  // 月次進捗計算
+  const [dateYear, dateMonth, dateDay] = date.split('-').map(Number)
+  const daysInMonth = new Date(dateYear, dateMonth, 0).getDate()
+  const remainingDays = daysInMonth - dateDay
+  const achievementRate = monthlyTarget && monthlyTarget > 0
+    ? Math.round((monthlySalesTotal / monthlyTarget) * 1000) / 10 : null
+  const dailyAvg = dateDay > 0 ? Math.round(monthlySalesTotal / dateDay) : 0
+  const targetDailyPace = monthlyTarget ? Math.round(monthlyTarget / daysInMonth) : 0
+  const requiredDaily = monthlyTarget && remainingDays > 0
+    ? Math.round((monthlyTarget - monthlySalesTotal) / remainingDays) : null
+  const paceDiff = dailyAvg - targetDailyPace
+  const yoyRate = prevYearTotal && prevYearTotal > 0
+    ? Math.round((monthlySalesTotal / prevYearTotal) * 1000) / 10 : null
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#F1F3F8]">
@@ -310,6 +392,107 @@ export default function ReportPage() {
                 <ChevronRight size={20} className="text-[#6B7280]" />
               </button>
             </div>
+          </div>
+
+          {/* 月次目標進捗 */}
+          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target size={16} className="text-[#E8320A]" />
+                <span className="text-sm font-bold text-[#111827]">{dateYear}年{dateMonth}月の目標進捗</span>
+              </div>
+              {!settingTarget ? (
+                <button onClick={() => setSettingTarget(true)} className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#111827] transition-colors">
+                  <Pencil size={12} />
+                  {monthlyTarget ? '目標を変更' : '目標を設定'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text" inputMode="numeric"
+                    value={targetInput}
+                    onChange={e => setTargetInput(e.target.value)}
+                    placeholder="例：3000000"
+                    className="w-32 border border-[#E5E9F2] rounded-lg px-2 py-1 text-sm text-[#111827] focus:outline-none focus:border-[#E8320A]"
+                    autoFocus
+                  />
+                  <button onClick={saveTarget} disabled={savingTarget || !targetInput}
+                    className="flex items-center gap-1 bg-[#E8320A] text-white text-xs font-medium px-2 py-1 rounded-lg disabled:opacity-40">
+                    <Check size={12} />保存
+                  </button>
+                  <button onClick={() => setSettingTarget(false)} className="text-xs text-[#9CA3AF]">キャンセル</button>
+                </div>
+              )}
+            </div>
+
+            {monthlyTarget ? (
+              <>
+                {/* 達成率バー */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-[#6B7280] mb-1">
+                    <span>今月累計 {monthlySalesTotal.toLocaleString('ja-JP')}円</span>
+                    <span>目標 {monthlyTarget.toLocaleString('ja-JP')}円</span>
+                  </div>
+                  <div className="h-3 bg-[#F1F3F8] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${achievementRate && achievementRate >= 100 ? 'bg-green-500' : achievementRate && achievementRate >= 70 ? 'bg-yellow-500' : 'bg-[#E8320A]'}`}
+                      style={{ width: `${Math.min(achievementRate ?? 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* 3指標 */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="bg-[#F1F3F8] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] text-[#9CA3AF] mb-0.5">達成率</p>
+                    <p className={`text-base font-bold ${achievementRate && achievementRate >= 100 ? 'text-green-600' : 'text-[#111827]'}`}>
+                      {achievementRate != null ? `${achievementRate}%` : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-[#F1F3F8] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] text-[#9CA3AF] mb-0.5">残り日数</p>
+                    <p className="text-base font-bold text-[#111827]">{remainingDays}日</p>
+                  </div>
+                  <div className="bg-[#F1F3F8] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] text-[#9CA3AF] mb-0.5">ペース</p>
+                    {paceDiff >= 0 ? (
+                      <p className="text-base font-bold text-green-600">超過</p>
+                    ) : (
+                      <p className="text-base font-bold text-red-500">不足</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ペース詳細 */}
+                <div className={`rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${paceDiff >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                  {paceDiff >= 0
+                    ? <TrendingUp size={14} className="flex-shrink-0 mt-0.5" />
+                    : <TrendingDown size={14} className="flex-shrink-0 mt-0.5" />}
+                  <div>
+                    <span>現在の日割り平均 {dailyAvg.toLocaleString('ja-JP')}円/日</span>
+                    <span className="mx-1">|</span>
+                    <span>目標ペース {targetDailyPace.toLocaleString('ja-JP')}円/日</span>
+                    {paceDiff < 0 && requiredDaily != null && remainingDays > 0 && (
+                      <span className="block mt-0.5">残り{remainingDays}日で {requiredDaily.toLocaleString('ja-JP')}円/日必要</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 作対 */}
+                <div className="mt-2 pt-2 border-t border-[#F1F3F8] flex items-center justify-between text-xs">
+                  <span className="text-[#9CA3AF]">作対（前年同期比）</span>
+                  {yoyRate != null ? (
+                    <span className={`font-bold ${yoyRate >= 100 ? 'text-green-600' : 'text-red-500'}`}>
+                      {yoyRate >= 100 ? '+' : ''}{(yoyRate - 100).toFixed(1)}% （{yoyRate}%）
+                    </span>
+                  ) : (
+                    <span className="text-[#9CA3AF]">データ蓄積中...</span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-[#9CA3AF]">今月の売上目標を設定すると進捗・ペース判定が表示されます</p>
+            )}
           </div>
 
           {/* レジジャーナル写真読み取り */}

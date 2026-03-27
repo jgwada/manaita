@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const shopId = searchParams.get('shopId')
+  const year = searchParams.get('year')
+  const month = searchParams.get('month')
+
+  if (!shopId || !year || !month) return NextResponse.json({ success: false, error: 'パラメータ不足' })
+
+  const { data, error } = await supabaseAdmin
+    .from('monthly_targets')
+    .select('*')
+    .eq('shop_id', shopId)
+    .eq('year', parseInt(year))
+    .eq('month', parseInt(month))
+    .single()
+
+  if (error?.code === 'PGRST116') return NextResponse.json({ success: true, data: null })
+  if (error) return NextResponse.json({ success: false, error: error.message })
+  return NextResponse.json({ success: true, data })
+}
+
+export async function POST(req: Request) {
+  try {
+    const { shopId, year, month, targetSales } = await req.json()
+
+    const { data, error } = await supabaseAdmin
+      .from('monthly_targets')
+      .upsert({
+        shop_id: shopId, year, month,
+        target_sales: targetSales,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'shop_id,year,month' })
+      .select().single()
+
+    if (error) return NextResponse.json({ success: false, error: error.message })
+    return NextResponse.json({ success: true, data })
+  } catch (e) {
+    return NextResponse.json({ success: false, error: String(e) })
+  }
+}
