@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Calculator, Plus, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Sparkles, Minus, Users, History } from 'lucide-react'
+import { Calculator, Plus, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Minus, Users, History } from 'lucide-react'
 import { FLMonthlyRecord, MenuCostItem, StaffRow } from '@/types'
 
 type HistoryRecord = Pick<FLMonthlyRecord, 'id' | 'year' | 'month' | 'revenue' | 'food_cost' | 'beverage_cost' | 'labor_cost' | 'fl_ratio' | 'food_ratio' | 'beverage_ratio' | 'labor_ratio'>
@@ -68,8 +68,6 @@ export default function FlPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiComment, setAiComment] = useState('')
   const [showCopyBanner, setShowCopyBanner] = useState(false)
 
   const [history, setHistory] = useState<HistoryRecord[]>([])
@@ -85,7 +83,6 @@ export default function FlPage() {
   const loadData = useCallback(async () => {
     if (!shopProfile?.id) return
     setSaved(false)
-    setAiComment('')
     const res = await fetch(`/api/fl?shopId=${shopProfile.id}&year=${year}&month=${month}`)
     const json = await res.json()
     if (json.success) {
@@ -96,7 +93,6 @@ export default function FlPage() {
         setFoodCost(json.data.food_cost > 0 ? fmt(json.data.food_cost) : '')
         setBeverageCost(json.data.beverage_cost > 0 ? fmt(json.data.beverage_cost) : '')
         setStaffRows(json.data.staff_details?.length ? json.data.staff_details : [newStaff()])
-        setAiComment(json.data.ai_comment ?? '')
         setSaved(true)
         setShowCopyBanner(false)
       } else {
@@ -172,7 +168,6 @@ export default function FlPage() {
       if (json.success) {
         setRecord(json.data)
         setSaved(true)
-        setAiComment('')
         setHistory(prev => {
           const filtered = prev.filter(h => !(h.year === year && h.month === month))
           return [json.data, ...filtered].sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
@@ -186,40 +181,6 @@ export default function FlPage() {
     setSaving(false)
   }
 
-  const handleGenerateAI = async () => {
-    if (!record || !shopProfile) return
-    setAiLoading(true)
-    setAiComment('')
-    const res = await fetch('/api/fl/comment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shopProfile, year, month,
-        revenue: record.revenue, foodCost: record.food_cost, beverageCost: record.beverage_cost, laborCost: record.labor_cost,
-        flRatio: record.fl_ratio, foodRatio: record.food_ratio, beverageRatio: record.beverage_ratio, laborRatio: record.labor_ratio,
-        prevFlRatio: prevRecord?.fl_ratio,
-      }),
-    })
-    if (!res.body) { setAiLoading(false); return }
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let full = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value)
-      full += chunk
-      setAiComment(full)
-    }
-    setAiLoading(false)
-    if (full && record?.id) {
-      await fetch('/api/fl', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: record.id, aiComment: full }),
-      })
-    }
-  }
 
   const addMenuItem = async () => {
     if (!shopProfile?.id || !menuName || !sellPrice || !costPrice) return
@@ -483,32 +444,6 @@ export default function FlPage() {
                   ))}
                 </div>
 
-                {/* AI アドバイス */}
-                <div className="border-t border-[#F1F3F8] pt-3">
-                  {!aiComment && !aiLoading && (
-                    <button
-                      onClick={handleGenerateAI}
-                      className="flex items-center gap-2 text-sm font-bold text-[#E8320A] hover:underline"
-                    >
-                      <Sparkles size={14} />AIアドバイスを見る
-                    </button>
-                  )}
-                  {aiLoading && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <div className="w-3 h-3 border-2 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
-                      分析中...
-                    </div>
-                  )}
-                  {aiComment && (
-                    <div>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#E8320A] mb-2">
-                        <Sparkles size={12} />AIアドバイス
-                      </div>
-                      <p className="text-sm text-[#374151] whitespace-pre-wrap leading-relaxed">{aiComment}</p>
-                      <button onClick={handleGenerateAI} className="text-[10px] text-[#9CA3AF] hover:text-[#6B7280] mt-2">再生成</button>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 
