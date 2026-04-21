@@ -264,7 +264,7 @@ export default function FlPage() {
         const lines = text.split('\n').filter(l => l.trim())
         // ヘッダー行スキップ（1行目がメニュー名/売価などの場合）
         const startIdx = lines[0].match(/^[^\d].*[^\d]$/) ? 1 : 0
-        const rows: PendingMenu[] = lines.slice(startIdx).map((line, i) => {
+        const rows: PendingMenu[] = lines.slice(startIdx).map((line, i): PendingMenu => {
           const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim())
           return {
             id: `csv-${i}`,
@@ -283,7 +283,7 @@ export default function FlPage() {
         const ws = wb.Sheets[wb.SheetNames[0]]
         const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][]
         const startIdx = data[0]?.[0] && typeof data[0][0] === 'string' && isNaN(Number(data[0][0])) ? 1 : 0
-        const rows: PendingMenu[] = data.slice(startIdx).map((row, i) => ({
+        const rows: PendingMenu[] = data.slice(startIdx).map((row, i): PendingMenu => ({
           id: `xl-${i}`,
           menu_name: String(row[0] ?? '').trim(),
           sell_price: row[1] ? parseInt(String(row[1]).replace(/[^0-9]/g, '')) || null : null,
