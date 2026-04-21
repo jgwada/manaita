@@ -6,7 +6,7 @@ import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { MenuCostItem } from '@/types'
-import { Upload, X, Plus, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react'
+import { Upload, X, Plus, ChevronRight, AlertTriangle, Sparkles, ArrowRight, BookOpen } from 'lucide-react'
 
 // ---------- 型定義 ----------
 type Phase = 'upload' | 'confirm' | 'result'
@@ -243,73 +243,103 @@ export default function AbcPage() {
           <div className="max-w-lg mx-auto px-4 py-6">
             <PageHeader title="メニューABC分析" description="注文数と利益率で全メニューを4象限に分類し、施策を自動提案" backHref="/" />
 
-            {menuCostItems.length === 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700">
-                ⚠️ メニューの原価データがありません。先に <a href="/tools/fl" className="font-bold underline">FLコスト計算</a> でメニューを登録してください。
+            {menuCostItems.length === 0 ? (
+              /* ── メニュー未登録: 目立つ告知カード ── */
+              <div className="bg-white border-2 border-amber-400 rounded-2xl overflow-hidden">
+                <div className="bg-amber-400 px-5 py-3 flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-white flex-shrink-0" />
+                  <p className="text-sm font-bold text-white">事前設定が必要です</p>
+                </div>
+                <div className="px-5 py-5">
+                  <div className="flex items-start gap-4 mb-5">
+                    <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <BookOpen size={22} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-[#111827] mb-1.5">
+                        メニューの原価・売価が登録されていません
+                      </p>
+                      <p className="text-xs text-[#6B7280] leading-relaxed">
+                        ABC分析では、各メニューの<span className="font-bold text-[#111827]">原価・売価・粗利率</span>をもとに
+                        4象限への分類を行います。<br />
+                        まずは <span className="font-bold text-[#111827]">FLコスト計算</span> でメニューごとの
+                        原価・売価を登録してから、こちらの機能をお使いください。
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="/tools/fl"
+                    className="flex items-center justify-center gap-2 w-full bg-[#E8320A] text-white font-bold text-sm py-3.5 rounded-xl hover:bg-[#c92b09] transition-colors"
+                  >
+                    <BookOpen size={15} />
+                    FLコスト計算でメニューを登録する
+                    <ArrowRight size={15} />
+                  </a>
+                  <p className="text-[10px] text-[#9CA3AF] text-center mt-3">
+                    登録後、このページに戻ってくると分析できるようになります
+                  </p>
+                </div>
               </div>
-            )}
+            ) : (
+              /* ── メニュー登録済み: 通常フロー ── */
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button onClick={() => setInputMode('photo')}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${inputMode === 'photo' ? 'border-[#E8320A] bg-red-50' : 'border-[#E5E9F2] bg-white hover:border-[#E8320A]'}`}>
+                    <span className="text-2xl">📸</span>
+                    <span className={`text-xs font-bold ${inputMode === 'photo' ? 'text-[#E8320A]' : 'text-[#111827]'}`}>伝票写真から読み取り</span>
+                    <span className="text-[10px] text-[#9CA3AF] text-center">POS伝票・月次レポート<br />複数枚OK</span>
+                  </button>
+                  <button onClick={() => { setInputMode('manual'); setConfirmRows([]); setPhase('confirm') }}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${inputMode === 'manual' ? 'border-[#E8320A] bg-red-50' : 'border-[#E5E9F2] bg-white hover:border-[#E8320A]'}`}>
+                    <span className="text-2xl">✏️</span>
+                    <span className={`text-xs font-bold ${inputMode === 'manual' ? 'text-[#E8320A]' : 'text-[#111827]'}`}>手入力</span>
+                    <span className="text-[10px] text-[#9CA3AF] text-center">メニューを選んで<br />注文数を入力</span>
+                  </button>
+                </div>
 
-            {/* モード切替 */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button onClick={() => setInputMode('photo')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${inputMode === 'photo' ? 'border-[#E8320A] bg-red-50' : 'border-[#E5E9F2] bg-white hover:border-[#E8320A]'}`}>
-                <span className="text-2xl">📸</span>
-                <span className={`text-xs font-bold ${inputMode === 'photo' ? 'text-[#E8320A]' : 'text-[#111827]'}`}>伝票写真から読み取り</span>
-                <span className="text-[10px] text-[#9CA3AF] text-center">POS伝票・月次レポート<br />複数枚OK</span>
-              </button>
-              <button onClick={() => { setInputMode('manual'); setConfirmRows([]); setPhase('confirm') }}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${inputMode === 'manual' ? 'border-[#E8320A] bg-red-50' : 'border-[#E5E9F2] bg-white hover:border-[#E8320A]'}`}>
-                <span className="text-2xl">✏️</span>
-                <span className={`text-xs font-bold ${inputMode === 'manual' ? 'text-[#E8320A]' : 'text-[#111827]'}`}>手入力</span>
-                <span className="text-[10px] text-[#9CA3AF] text-center">メニューを選んで<br />注文数を入力</span>
-              </button>
-            </div>
-
-            {inputMode === 'photo' && (
-              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-                <p className="text-sm font-bold text-[#111827] mb-1">伝票・売上レポートの写真</p>
-                <p className="text-xs text-[#6B7280] mb-3">POS日次レポート・月次集計表など複数枚添付できます</p>
-
-                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e => {
-                  const newFiles = Array.from(e.target.files ?? [])
-                  setFiles(prev => [...prev, ...newFiles])
-                  if (fileInputRef.current) fileInputRef.current.value = ''
-                }} className="hidden" />
-
-                {files.length > 0 && (
-                  <div className="space-y-2 mb-3">
-                    {files.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
-                        <span className="text-base">🖼️</span>
-                        <p className="text-xs font-medium text-[#111827] flex-1 truncate">{f.name}</p>
-                        <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} className="text-[#9CA3AF] hover:text-[#E8320A]">
-                          <X size={14} />
-                        </button>
+                {inputMode === 'photo' && (
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-1">伝票・売上レポートの写真</p>
+                    <p className="text-xs text-[#6B7280] mb-3">POS日次レポート・月次集計表など複数枚添付できます</p>
+                    <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e => {
+                      const newFiles = Array.from(e.target.files ?? [])
+                      setFiles(prev => [...prev, ...newFiles])
+                      if (fileInputRef.current) fileInputRef.current.value = ''
+                    }} className="hidden" />
+                    {files.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {files.map((f, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
+                            <span className="text-base">🖼️</span>
+                            <p className="text-xs font-medium text-[#111827] flex-1 truncate">{f.name}</p>
+                            <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} className="text-[#9CA3AF] hover:text-[#E8320A]">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+                    <div onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-[#E5E9F2] rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all">
+                      <Upload size={22} className="text-[#6B7280]" />
+                      <p className="text-xs font-bold text-[#111827]">写真を追加</p>
+                      <p className="text-[10px] text-[#9CA3AF]">タップして選択</p>
+                    </div>
+                    {extractError && <p className="mt-2 text-xs text-[#E8320A] bg-red-50 rounded-xl px-3 py-2">{extractError}</p>}
                   </div>
                 )}
 
-                <div onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-[#E5E9F2] rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all">
-                  <Upload size={22} className="text-[#6B7280]" />
-                  <p className="text-xs font-bold text-[#111827]">写真を追加</p>
-                  <p className="text-[10px] text-[#9CA3AF]">タップして選択</p>
-                </div>
-
-                {extractError && <p className="mt-2 text-xs text-[#E8320A] bg-red-50 rounded-xl px-3 py-2">{extractError}</p>}
-              </div>
-            )}
-
-            {inputMode === 'photo' && (
-              <button onClick={handleExtract} disabled={extracting || files.length === 0 || menuCostItems.length === 0}
-                className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                {extracting ? (
-                  <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />読み取り中...</>
-                ) : (
-                  <>📸 写真からメニューを読み取る</>
+                {inputMode === 'photo' && (
+                  <button onClick={handleExtract} disabled={extracting || files.length === 0}
+                    className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    {extracting
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />読み取り中...</>
+                      : <>📸 写真からメニューを読み取る</>
+                    }
+                  </button>
                 )}
-              </button>
+              </>
             )}
           </div>
         </div>
