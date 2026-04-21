@@ -9,7 +9,7 @@ import ToolCard from '@/components/ui/ToolCard'
 import {
   Instagram, Star, Users, Wine, BarChart2,
   BookOpen, TrendingUp, Calculator,
-  Calendar, UserCheck, Search, Tag,
+  Calendar, Search, Tag,
   MessageSquare, MessageCircle, FileText, MapPin,
   Zap, Newspaper, Rocket, Bell, CheckSquare, Square, Plus, Trash2, X
 } from 'lucide-react'
@@ -31,7 +31,6 @@ const phase2Tools = [
   { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', disabled: true, gradient: 'from-cyan-400 to-teal-500' },
   { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', gradient: 'from-orange-400 to-red-500' },
   { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar', disabled: true, gradient: 'from-purple-400 to-pink-500' },
-  { icon: UserCheck, name: '常連客管理', description: '来店頻度を記録・長期来店なしの顧客をアラート', href: '/tools/customers', disabled: true, gradient: 'from-rose-400 to-pink-500' },
 ]
 
 const phase3Tools = [
