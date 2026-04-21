@@ -25,12 +25,13 @@ type Turn =
   | { role: 'summary'; text: string }
 
 function messagesToTurns(messages: ChatMessage[]): Turn[] {
-  return messages.flatMap(msg => {
-    if (msg.role === 'ceo' && msg.content.text) return [{ role: 'ceo' as const, text: msg.content.text }]
-    if (msg.role === 'team' && msg.content.members) return [{ role: 'team' as const, members: msg.content.members }]
-    if (msg.role === 'summary' && msg.content.text) return [{ role: 'summary' as const, text: msg.content.text }]
-    return []
-  })
+  const turns: Turn[] = []
+  for (const msg of messages) {
+    if (msg.role === 'ceo' && msg.content.text) turns.push({ role: 'ceo', text: msg.content.text })
+    else if (msg.role === 'team' && msg.content.members) turns.push({ role: 'team', members: msg.content.members })
+    else if (msg.role === 'summary' && msg.content.text) turns.push({ role: 'summary', text: msg.content.text })
+  }
+  return turns
 }
 
 function escapeRegex(s: string) {
