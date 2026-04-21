@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
-import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Download, Calendar as CalendarIcon } from 'lucide-react'
 
 // ---------- 型定義 ----------
 type CalendarEvent = {
@@ -112,24 +112,87 @@ export default function CalendarPage() {
     setSavingMemo(false)
   }
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (targetYear?: number, targetMonth?: number) => {
     if (!shopProfile || generating) return
+    const ty = targetYear ?? year
+    const tm = targetMonth ?? month
     setGenerating(true)
     setGenerateMsg('')
     const res = await fetch('/api/calendar/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shopProfile, year, month }),
+      body: JSON.stringify({ shopProfile, year: ty, month: tm }),
     })
     const json = await res.json()
     if (json.success) {
-      setEvents(json.data ?? [])
-      setGenerateMsg(`${(json.data ?? []).length}件のイベントを取得しました`)
+      // 別月を取得した場合はその月に移動
+      if (ty !== year || tm !== month) {
+        setYear(ty)
+        setMonth(tm)
+        setSelectedDate(null)
+        setGenerateMsg(`${ty}年${tm}月のイベントを${(json.data ?? []).length}件取得しました`)
+      } else {
+        setEvents(json.data ?? [])
+        setGenerateMsg(`${(json.data ?? []).length}件のイベントを取得しました`)
+      }
     } else {
       setGenerateMsg('取得に失敗しました。もう一度お試しください。')
     }
     setGenerating(false)
-    setTimeout(() => setGenerateMsg(''), 4000)
+    setTimeout(() => setGenerateMsg(''), 5000)
+  }
+
+  // 翌月・翌々月の年月を計算
+  const nextMonth = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
+  const nextNextMonth = nextMonth.m === 12 ? { y: nextMonth.y + 1, m: 1 } : { y: nextMonth.y, m: nextMonth.m + 1 }
+
+  // .ics ファイルを生成してダウンロード
+  const exportToIcs = () => {
+    const lines: string[] = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Manaita//Manaita Calendar//JA',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+    ]
+
+    // イベントを追加
+    for (const ev of events) {
+      const d = ev.date.replace(/-/g, '')
+      const nextDay = new Date(new Date(ev.date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      lines.push('BEGIN:VEVENT')
+      lines.push(`UID:manaita-ev-${ev.id}@manaita`)
+      lines.push(`DTSTART;VALUE=DATE:${d}`)
+      lines.push(`DTEND;VALUE=DATE:${nextDay}`)
+      lines.push(`SUMMARY:${ev.title}`)
+      if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`)
+      if (ev.impact) lines.push(`X-IMPACT:${ev.impact}`)
+      lines.push('END:VEVENT')
+    }
+
+    // メモをイベントとして追加
+    for (const [date, memo] of Object.entries(memos)) {
+      if (!memo) continue
+      const d = date.replace(/-/g, '')
+      const nextDay = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      lines.push('BEGIN:VEVENT')
+      lines.push(`UID:manaita-memo-${date}@manaita`)
+      lines.push(`DTSTART;VALUE=DATE:${d}`)
+      lines.push(`DTEND;VALUE=DATE:${nextDay}`)
+      lines.push(`SUMMARY:📝 ${memo.split('\n')[0].slice(0, 40)}`)
+      lines.push(`DESCRIPTION:${memo.replace(/\n/g, '\\n')}`)
+      lines.push('END:VEVENT')
+    }
+
+    lines.push('END:VCALENDAR')
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `manaita-${year}-${String(month).padStart(2, '0')}.ics`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const deleteEvent = async (id: string) => {
@@ -156,7 +219,7 @@ export default function CalendarPage() {
         <div className="max-w-2xl mx-auto px-3 py-5">
 
           {/* ヘッダー */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-white rounded-lg transition-colors">
                 <ChevronLeft size={18} className="text-[#6B7280]" />
@@ -168,15 +231,47 @@ export default function CalendarPage() {
                 <ChevronRight size={18} className="text-[#6B7280]" />
               </button>
             </div>
+            <div className="flex items-center gap-2">
+              {/* Googleカレンダー書き出し */}
+              <button
+                onClick={exportToIcs}
+                disabled={events.length === 0 && Object.keys(memos).length === 0}
+                title="Googleカレンダーに書き出し"
+                className="flex items-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-bold px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-40"
+              >
+                <CalendarIcon size={12} />.ics
+              </button>
+              {/* 今月イベント取得 */}
+              <button
+                onClick={() => handleGenerate()}
+                disabled={generating}
+                className="flex items-center gap-1.5 bg-[#E8320A] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#c92b09] transition-colors disabled:opacity-50"
+              >
+                {generating
+                  ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />取得中...</>
+                  : <><Sparkles size={12} />AI取得</>
+                }
+              </button>
+            </div>
+          </div>
+
+          {/* 先取り取得ボタン */}
+          <div className="flex gap-2 mb-4">
             <button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate(nextMonth.y, nextMonth.m)}
               disabled={generating}
-              className="flex items-center gap-1.5 bg-[#E8320A] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#c92b09] transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
             >
-              {generating
-                ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />取得中...</>
-                : <><Sparkles size={12} />AIでイベント取得</>
-              }
+              <Sparkles size={11} />
+              {nextMonth.m}月を先取り取得
+            </button>
+            <button
+              onClick={() => handleGenerate(nextNextMonth.y, nextNextMonth.m)}
+              disabled={generating}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
+            >
+              <Sparkles size={11} />
+              {nextNextMonth.m}月を先取り取得
             </button>
           </div>
 
