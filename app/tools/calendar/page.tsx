@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
-import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Download, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as CalendarIcon } from 'lucide-react'
 
 // ---------- 型定義 ----------
 type CalendarEvent = {
@@ -27,15 +27,17 @@ type WeatherData = Record<string, { icon: string; temp: number | null }>
 
 // ---------- ユーティリティ ----------
 function getDates(year: number, month: number): (number | null)[] {
-  const firstDow = new Date(year, month - 1, 1).getDay() // 0=日
+  const firstDow = new Date(year, month - 1, 1).getDay()
   const lastDate = new Date(year, month, 0).getDate()
-  const blanks = Array(firstDow).fill(null)
-  const days = Array.from({ length: lastDate }, (_, i) => i + 1)
-  return [...blanks, ...days]
+  return [...Array(firstDow).fill(null), ...Array.from({ length: lastDate }, (_, i) => i + 1)]
 }
 
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function monthKey(year: number, month: number) {
+  return `${year}-${String(month).padStart(2, '0')}`
 }
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土']
@@ -52,9 +54,19 @@ export default function CalendarPage() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
-  const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [memos, setMemos] = useState<Record<string, string>>({}) // date → memo
-  const [weather, setWeather] = useState<WeatherData>({})
+
+  // 月をまたいでキャッシュ（一度取得したら再取得しない）
+  const [eventsCache, setEventsCache] = useState<Record<string, CalendarEvent[]>>({})
+  const [memosCache, setMemosCache] = useState<Record<string, Record<string, string>>>({})
+  const [weatherCache, setWeatherCache] = useState<Record<string, WeatherData>>({})
+  const loadedRef = useRef<Set<string>>(new Set())
+
+  // 現在表示中の月のデータ
+  const key = monthKey(year, month)
+  const events = eventsCache[key] ?? []
+  const memos = memosCache[key] ?? {}
+  const weather = weatherCache[key] ?? {}
+
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [editMemo, setEditMemo] = useState('')
   const [editingMemo, setEditingMemo] = useState(false)
@@ -63,27 +75,34 @@ export default function CalendarPage() {
   const [generateMsg, setGenerateMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (y: number, m: number, force = false) => {
     if (!shopProfile?.id) return
+    const k = monthKey(y, m)
+    if (!force && loadedRef.current.has(k)) return // キャッシュ済みはスキップ
     setLoading(true)
     const [evRes, memoRes, wxRes] = await Promise.all([
-      fetch(`/api/calendar/events?shopId=${shopProfile.id}&year=${year}&month=${month}`),
-      fetch(`/api/calendar/memos?shopId=${shopProfile.id}&year=${year}&month=${month}`),
-      fetch(`/api/calendar/weather?area=${encodeURIComponent(shopProfile.area)}&year=${year}&month=${month}`),
+      fetch(`/api/calendar/events?shopId=${shopProfile.id}&year=${y}&month=${m}`),
+      fetch(`/api/calendar/memos?shopId=${shopProfile.id}&year=${y}&month=${m}`),
+      fetch(`/api/calendar/weather?area=${encodeURIComponent(shopProfile.area)}&year=${y}&month=${m}`),
     ])
     const [evJson, memoJson, wxJson] = await Promise.all([evRes.json(), memoRes.json(), wxRes.json()])
 
-    if (evJson.success) setEvents(evJson.data ?? [])
+    if (evJson.success) {
+      setEventsCache(prev => ({ ...prev, [k]: evJson.data ?? [] }))
+    }
     if (memoJson.success) {
       const map: Record<string, string> = {}
-      for (const m of (memoJson.data ?? []) as CalendarMemo[]) map[m.date] = m.memo
-      setMemos(map)
+      for (const memo of (memoJson.data ?? []) as CalendarMemo[]) map[memo.date] = memo.memo
+      setMemosCache(prev => ({ ...prev, [k]: map }))
     }
-    if (wxJson.success) setWeather(wxJson.data ?? {})
+    if (wxJson.success) {
+      setWeatherCache(prev => ({ ...prev, [k]: wxJson.data ?? {} }))
+    }
+    loadedRef.current.add(k)
     setLoading(false)
-  }, [shopProfile?.id, shopProfile?.area, year, month])
+  }, [shopProfile?.id, shopProfile?.area])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData(year, month) }, [loadData, year, month])
 
   const navigate = (dir: 1 | -1) => {
     let m = month + dir, y = year
@@ -107,7 +126,7 @@ export default function CalendarPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shopId: shopProfile.id, date: selectedDate, memo: editMemo }),
     })
-    setMemos(prev => ({ ...prev, [selectedDate]: editMemo }))
+    setMemosCache(prev => ({ ...prev, [key]: { ...(prev[key] ?? {}), [selectedDate]: editMemo } }))
     setEditingMemo(false)
     setSavingMemo(false)
   }
@@ -125,14 +144,15 @@ export default function CalendarPage() {
     })
     const json = await res.json()
     if (json.success) {
-      // 別月を取得した場合はその月に移動
+      const tk = monthKey(ty, tm)
+      // 取得結果をキャッシュに反映
+      setEventsCache(prev => ({ ...prev, [tk]: json.data ?? [] }))
+      loadedRef.current.add(tk)
+      // 別月なら自動でその月に移動
       if (ty !== year || tm !== month) {
-        setYear(ty)
-        setMonth(tm)
-        setSelectedDate(null)
+        setYear(ty); setMonth(tm); setSelectedDate(null)
         setGenerateMsg(`${ty}年${tm}月のイベントを${(json.data ?? []).length}件取得しました`)
       } else {
-        setEvents(json.data ?? [])
         setGenerateMsg(`${(json.data ?? []).length}件のイベントを取得しました`)
       }
     } else {
@@ -142,65 +162,50 @@ export default function CalendarPage() {
     setTimeout(() => setGenerateMsg(''), 5000)
   }
 
-  // 翌月・翌々月の年月を計算
+  // 翌月・翌々月
   const nextMonth = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
   const nextNextMonth = nextMonth.m === 12 ? { y: nextMonth.y + 1, m: 1 } : { y: nextMonth.y, m: nextMonth.m + 1 }
 
-  // .ics ファイルを生成してダウンロード
+  // .ics エクスポート
   const exportToIcs = () => {
     const lines: string[] = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
+      'BEGIN:VCALENDAR', 'VERSION:2.0',
       'PRODID:-//Manaita//Manaita Calendar//JA',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
+      'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     ]
-
-    // イベントを追加
     for (const ev of events) {
       const d = ev.date.replace(/-/g, '')
-      const nextDay = new Date(new Date(ev.date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
-      lines.push('BEGIN:VEVENT')
-      lines.push(`UID:manaita-ev-${ev.id}@manaita`)
-      lines.push(`DTSTART;VALUE=DATE:${d}`)
-      lines.push(`DTEND;VALUE=DATE:${nextDay}`)
-      lines.push(`SUMMARY:${ev.title}`)
+      const nd = new Date(new Date(ev.date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      lines.push('BEGIN:VEVENT', `UID:manaita-ev-${ev.id}@manaita`,
+        `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nd}`, `SUMMARY:${ev.title}`)
       if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`)
-      if (ev.impact) lines.push(`X-IMPACT:${ev.impact}`)
       lines.push('END:VEVENT')
     }
-
-    // メモをイベントとして追加
     for (const [date, memo] of Object.entries(memos)) {
       if (!memo) continue
       const d = date.replace(/-/g, '')
-      const nextDay = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
-      lines.push('BEGIN:VEVENT')
-      lines.push(`UID:manaita-memo-${date}@manaita`)
-      lines.push(`DTSTART;VALUE=DATE:${d}`)
-      lines.push(`DTEND;VALUE=DATE:${nextDay}`)
-      lines.push(`SUMMARY:📝 ${memo.split('\n')[0].slice(0, 40)}`)
-      lines.push(`DESCRIPTION:${memo.replace(/\n/g, '\\n')}`)
-      lines.push('END:VEVENT')
+      const nd = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      lines.push('BEGIN:VEVENT', `UID:manaita-memo-${date}@manaita`,
+        `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nd}`,
+        `SUMMARY:📝 ${memo.split('\n')[0].slice(0, 40)}`,
+        `DESCRIPTION:${memo.replace(/\n/g, '\\n')}`, 'END:VEVENT')
     }
-
     lines.push('END:VCALENDAR')
-
     const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `manaita-${year}-${String(month).padStart(2, '0')}.ics`
+    a.download = `manaita-${key}.ics`
     a.click()
     URL.revokeObjectURL(url)
   }
 
   const deleteEvent = async (id: string) => {
     await fetch(`/api/calendar/events?id=${id}`, { method: 'DELETE' })
-    setEvents(prev => prev.filter(e => e.id !== id))
+    setEventsCache(prev => ({ ...prev, [key]: (prev[key] ?? []).filter(e => e.id !== id) }))
   }
 
-  // 各日のイベントをまとめる
+  // 各日のイベントマップ
   const eventsByDate: Record<string, CalendarEvent[]> = {}
   for (const ev of events) {
     if (!eventsByDate[ev.date]) eventsByDate[ev.date] = []
@@ -232,7 +237,6 @@ export default function CalendarPage() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              {/* Googleカレンダー書き出し */}
               <button
                 onClick={exportToIcs}
                 disabled={events.length === 0 && Object.keys(memos).length === 0}
@@ -241,7 +245,6 @@ export default function CalendarPage() {
               >
                 <CalendarIcon size={12} />.ics
               </button>
-              {/* 今月イベント取得 */}
               <button
                 onClick={() => handleGenerate()}
                 disabled={generating}
@@ -262,16 +265,14 @@ export default function CalendarPage() {
               disabled={generating}
               className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
             >
-              <Sparkles size={11} />
-              {nextMonth.m}月を先取り取得
+              <Sparkles size={11} />{nextMonth.m}月を先取り取得
             </button>
             <button
               onClick={() => handleGenerate(nextNextMonth.y, nextNextMonth.m)}
               disabled={generating}
               className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
             >
-              <Sparkles size={11} />
-              {nextNextMonth.m}月を先取り取得
+              <Sparkles size={11} />{nextNextMonth.m}月を先取り取得
             </button>
           </div>
 
@@ -282,21 +283,20 @@ export default function CalendarPage() {
           )}
 
           {/* 凡例 */}
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <span className="flex items-center gap-1 text-[10px] text-[#9CA3AF]">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#E8320A]" />大型イベント
+          <div className="flex items-center gap-4 mb-3 px-1">
+            <span className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-[#E8320A]/40" />大型
             </span>
-            <span className="flex items-center gap-1 text-[10px] text-[#9CA3AF]">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />中型イベント
+            <span className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-300" />中型
             </span>
-            <span className="flex items-center gap-1 text-[10px] text-[#9CA3AF]">
-              <Pencil size={8} className="text-[#9CA3AF]" />メモあり
+            <span className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
+              <span className="inline-block w-2.5 h-1 rounded-full bg-indigo-400" />メモあり
             </span>
           </div>
 
           {/* カレンダーグリッド */}
           <div className="bg-white border border-[#E5E9F2] rounded-2xl overflow-hidden mb-4">
-            {/* 曜日ヘッダー */}
             <div className="grid grid-cols-7 border-b border-[#E5E9F2]">
               {DOW.map((d, i) => (
                 <div key={d} className={`text-center text-[10px] font-bold py-2 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-[#9CA3AF]'}`}>
@@ -305,7 +305,6 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            {/* 日付グリッド */}
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
@@ -313,9 +312,9 @@ export default function CalendarPage() {
             ) : (
               <div className="grid grid-cols-7">
                 {dates.map((day, idx) => {
-                  if (!day) return <div key={`blank-${idx}`} className="aspect-square border-b border-r border-[#F1F3F8] last:border-r-0" />
+                  if (!day) return <div key={`blank-${idx}`} className="aspect-square border-b border-r border-[#F1F3F8]" />
                   const dateStr = toDateStr(year, month, day)
-                  const dow = (idx) % 7
+                  const dow = idx % 7
                   const isSun = dow === 0
                   const isSat = dow === 6
                   const isToday = dateStr === today
@@ -324,17 +323,21 @@ export default function CalendarPage() {
                   const hasMemo = !!memos[dateStr]
                   const wx = weather[dateStr]
                   const hasLarge = dayEvents.some(e => e.scale === 'large')
-                  const hasMedium = dayEvents.some(e => e.scale === 'medium')
+                  const hasMedium = !hasLarge && dayEvents.some(e => e.scale === 'medium')
+                  const firstEvent = dayEvents[0]
 
                   return (
                     <button
                       key={dateStr}
                       onClick={() => handleDayClick(dateStr)}
-                      className={`min-h-[64px] sm:min-h-[80px] border-b border-r border-[#F1F3F8] p-1 text-left transition-colors flex flex-col ${
-                        isSelected ? 'bg-red-50 border-[#E8320A]' : 'hover:bg-[#F9FAFB]'
+                      className={`min-h-[72px] sm:min-h-[84px] border-b border-r border-[#F1F3F8] p-1 text-left transition-colors flex flex-col relative overflow-hidden ${
+                        isSelected ? 'bg-red-50 ring-1 ring-inset ring-[#E8320A]' :
+                        hasLarge ? 'bg-red-50/50 hover:bg-red-50' :
+                        hasMedium ? 'bg-amber-50/50 hover:bg-amber-50' :
+                        'hover:bg-[#F9FAFB]'
                       } ${idx % 7 === 6 ? 'border-r-0' : ''}`}
                     >
-                      {/* 日付 */}
+                      {/* 日付数字 */}
                       <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ${
                         isToday ? 'bg-[#E8320A] text-white' :
                         isSun ? 'text-red-500' :
@@ -352,16 +355,26 @@ export default function CalendarPage() {
                         </span>
                       )}
 
-                      {/* イベントドット */}
-                      {(hasLarge || hasMedium) && (
-                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
-                          {hasLarge && <span className="w-1.5 h-1.5 rounded-full bg-[#E8320A] flex-shrink-0" />}
-                          {hasMedium && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />}
-                        </div>
+                      {/* イベントタイトル（最初の1件） */}
+                      {firstEvent && (
+                        <span className={`text-[9px] font-semibold leading-tight mt-1 line-clamp-2 w-full ${
+                          firstEvent.scale === 'large' ? 'text-[#E8320A]' : 'text-amber-600'
+                        }`}>
+                          {firstEvent.title}
+                        </span>
                       )}
 
-                      {/* メモインジケーター */}
-                      {hasMemo && <Pencil size={8} className="text-[#9CA3AF] mt-auto" />}
+                      {/* 複数イベントの場合 */}
+                      {dayEvents.length > 1 && (
+                        <span className="text-[9px] text-[#9CA3AF] leading-none">
+                          +{dayEvents.length - 1}件
+                        </span>
+                      )}
+
+                      {/* メモバー（底辺） */}
+                      {hasMemo && (
+                        <span className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-400" />
+                      )}
                     </button>
                   )
                 })}
@@ -404,9 +417,7 @@ export default function CalendarPage() {
                           </div>
                           <p className="text-sm font-bold text-[#111827] leading-snug">{ev.title}</p>
                           {ev.description && <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">{ev.description}</p>}
-                          {ev.impact && (
-                            <p className="text-xs text-[#E8320A] mt-1.5 font-medium">💡 {ev.impact}</p>
-                          )}
+                          {ev.impact && <p className="text-xs text-[#E8320A] mt-1.5 font-medium">💡 {ev.impact}</p>}
                         </div>
                         <button onClick={() => deleteEvent(ev.id)} className="text-[#C4C9D4] hover:text-red-400 flex-shrink-0 mt-0.5">
                           <X size={14} />
