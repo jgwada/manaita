@@ -28,7 +28,7 @@ const phase2Tools = [
   { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', gradient: 'from-green-400 to-emerald-500' },
   { icon: TrendingUp, name: 'メニューABC分析', description: '売れ筋・利益貢献メニューを自動で分類・分析', href: '/tools/abc', gradient: 'from-cyan-400 to-teal-500' },
   { icon: Calculator, name: 'FLコスト計算', description: '食材費＋人件費の比率を業界標準と比較', href: '/tools/fl', gradient: 'from-orange-400 to-red-500' },
-  { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar', disabled: true, gradient: 'from-purple-400 to-pink-500' },
+  { icon: Calendar, name: '集客カレンダー', description: '月ごとの商戦・イベントと施策アドバイスを表示', href: '/tools/calendar', gradient: 'from-purple-400 to-pink-500' },
 ]
 
 const phase3Tools = [
