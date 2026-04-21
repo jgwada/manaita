@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 type SystemBlockWithCache = { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }
-type WebSearchTool = { type: string; name: string }
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_TOKENS = 2000
@@ -94,7 +93,8 @@ export async function callClaudeWithWebSearchStream(
     const stream = await client.messages.stream({
       model,
       max_tokens: maxTokens,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }] as WebSearchTool[],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
       messages: [{ role: 'user', content: prompt }]
     })
     for await (const chunk of stream) {
