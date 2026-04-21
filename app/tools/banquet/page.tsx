@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Upload, X, CheckCircle, Copy, FileText, Image as ImageIcon } from 'lucide-react'
+import ThreadSidebar from '@/components/chat/ThreadSidebar'
+import { useChatThreads } from '@/hooks/useChatThreads'
+import { ChatMessage } from '@/types'
+import { Upload, X, CheckCircle, Copy, FileText, Image as ImageIcon, Menu } from 'lucide-react'
 
 // 画像をCanvas経由で圧縮してbase64（JPEG）に変換
 function compressImageToBase64(file: File, maxPx = 1600, quality = 0.85): Promise<string> {
@@ -207,7 +210,11 @@ export default function BanquetGenPage() {
   const [loading, setLoading] = useState(false)
   const [rawOutput, setRawOutput] = useState('')
   const [error, setError] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { createThread, saveMessage } = useChatThreads(shopProfile?.id, 'banquet')
 
   const plans = parsePlans(rawOutput)
   const hasResults = plans.length > 0
@@ -242,10 +249,26 @@ export default function BanquetGenPage() {
     return files.length > 0 || menuText.trim().length > 0
   }
 
+  const handleSelectThread = useCallback((_threadId: string, dbMessages: ChatMessage[]) => {
+    const first = dbMessages[0]
+    if (first?.content?.text) {
+      setRawOutput(first.content.text)
+      setCurrentThreadId(_threadId)
+    }
+    setSidebarOpen(false)
+  }, [])
+
+  const handleNewThread = useCallback(() => {
+    setRawOutput('')
+    setCurrentThreadId(null)
+    setError('')
+  }, [])
+
   const handleGenerate = async () => {
     if (!canGenerate() || !shopProfile) return
     setError('')
     setRawOutput('')
+    setCurrentThreadId(null)
     setLoading(true)
 
     try {
@@ -288,11 +311,20 @@ export default function BanquetGenPage() {
         result += decoder.decode(value)
         setRawOutput(result)
       }
+
       if (result.startsWith('ERROR:')) {
         setError(result.replace('ERROR:', '').trim())
         setRawOutput('')
       } else if (!result.trim()) {
         setError('生成結果が空でした。もう一度お試しください。')
+      } else {
+        // 生成完了後にスレッドとして保存
+        const title = `宴会プラン ${priceMin}〜${priceMax}円`
+        const threadId = await createThread(title)
+        if (threadId) {
+          setCurrentThreadId(threadId)
+          saveMessage(threadId, 'assistant', { text: result })
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '生成に失敗しました。もう一度お試しください。')
@@ -303,171 +335,210 @@ export default function BanquetGenPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F1F3F8]">
+      <div className="h-screen bg-[#F1F3F8] flex flex-col overflow-hidden">
         <Header />
-        <div className="max-w-lg mx-auto px-4 py-6">
-          <PageHeader
-            title="宴会プランジェネレーター"
-            description="メニューを読み込んで、売れる宴会プランと価格を自動提案"
-            backHref="/"
+        <div className="flex flex-1 overflow-hidden">
+          <ThreadSidebar
+            shopId={shopProfile?.id}
+            toolName="banquet"
+            currentThreadId={currentThreadId}
+            onSelectThread={handleSelectThread}
+            onNewThread={handleNewThread}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           />
-
-          {/* 価格レンジ */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-3">推奨売価のレンジ（円/人）</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-[#6B7280] mb-1 block">下限</label>
-                <input type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)} step={500}
-                  className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-lg mx-auto px-4 py-6">
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden w-8 h-8 flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-white rounded-lg transition-colors"
+                >
+                  <Menu size={18} />
+                </button>
+                <PageHeader
+                  title="宴会プランジェネレーター"
+                  description="メニューを読み込んで、売れる宴会プランと価格を自動提案"
+                  backHref="/"
+                />
               </div>
-              <span className="text-[#6B7280] mt-4">〜</span>
-              <div className="flex-1">
-                <label className="text-xs text-[#6B7280] mb-1 block">上限</label>
-                <input type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)} step={500}
-                  className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
-              </div>
-            </div>
-          </div>
 
-          {/* 食材モード */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-3">食材の使い方</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setIngredientMode('existing')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'existing' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
-                <span className="text-lg">🍽️</span>
-                <span className="text-xs font-bold">既存食材のみ</span>
-                <span className="text-[10px] opacity-70">今あるもので組む</span>
-              </button>
-              <button onClick={() => setIngredientMode('additional')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'additional' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
-                <span className="text-lg">🛒</span>
-                <span className="text-xs font-bold">追加食材もOK</span>
-                <span className="text-[10px] opacity-70">買い足しも提案</span>
-              </button>
-            </div>
-          </div>
+              {/* 過去の結果を表示中のバナー */}
+              {hasResults && currentThreadId && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
+                  <p className="text-xs text-amber-700">過去の生成結果を表示しています</p>
+                  <button
+                    onClick={handleNewThread}
+                    className="text-xs text-[#E8320A] font-medium hover:underline flex-shrink-0"
+                  >
+                    新規生成
+                  </button>
+                </div>
+              )}
 
-          {/* ファイル添付 */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-1">メニューのファイルを添付</p>
-            <p className="text-xs text-[#6B7280] mb-3">PDF・JPEG・PNG を複数添付できます（1ファイル4MBまで）</p>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,image/jpeg,image/png"
-              multiple
-              onChange={e => addFiles(e.target.files)}
-              className="hidden"
-            />
-
-            {files.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {files.map((f, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
-                    {f.type === 'application/pdf'
-                      ? <FileText size={16} className="text-green-600 flex-shrink-0" />
-                      : <ImageIcon size={16} className="text-green-600 flex-shrink-0" />
-                    }
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#111827] truncate">{f.name}</p>
-                      <p className="text-[10px] text-[#6B7280]">{(f.size / 1024).toFixed(0)} KB</p>
+              {/* 結果表示中はフォームを折りたたむ */}
+              {!hasResults && (
+                <>
+                  {/* 価格レンジ */}
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-3">推奨売価のレンジ（円/人）</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-[#6B7280] mb-1 block">下限</label>
+                        <input type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)} step={500}
+                          className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
+                      </div>
+                      <span className="text-[#6B7280] mt-4">〜</span>
+                      <div className="flex-1">
+                        <label className="text-xs text-[#6B7280] mb-1 block">上限</label>
+                        <input type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)} step={500}
+                          className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]" />
+                      </div>
                     </div>
-                    <button onClick={() => removeFile(i)} className="text-[#6B7280] hover:text-[#E8320A] flex-shrink-0">
-                      <X size={14} />
-                    </button>
                   </div>
-                ))}
-              </div>
-            )}
 
-            <div
-              onDrop={handleDrop}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
-              onDragEnter={e => { e.preventDefault(); e.stopPropagation() }}
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-[#E5E9F2] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
-            >
-              <Upload size={22} className="text-[#6B7280]" />
-              <p className="text-xs font-bold text-[#111827]">ファイルを追加</p>
-              <p className="text-[10px] text-[#6B7280]">タップ または ドラッグ＆ドロップ</p>
-            </div>
+                  {/* 食材モード */}
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-3">食材の使い方</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setIngredientMode('existing')}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'existing' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
+                        <span className="text-lg">🍽️</span>
+                        <span className="text-xs font-bold">既存食材のみ</span>
+                        <span className="text-[10px] opacity-70">今あるもので組む</span>
+                      </button>
+                      <button onClick={() => setIngredientMode('additional')}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${ingredientMode === 'additional' ? 'border-[#E8320A] bg-red-50 text-[#E8320A]' : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A]'}`}>
+                        <span className="text-lg">🛒</span>
+                        <span className="text-xs font-bold">追加食材もOK</span>
+                        <span className="text-[10px] opacity-70">買い足しも提案</span>
+                      </button>
+                    </div>
+                  </div>
 
-            {fileError && (
-              <div className="mt-2 bg-red-50 text-[#E8320A] text-xs px-3 py-2.5 rounded-xl whitespace-pre-wrap">
-                {fileError}
-              </div>
-            )}
-          </div>
+                  {/* ファイル添付 */}
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-1">メニューのファイルを添付</p>
+                    <p className="text-xs text-[#6B7280] mb-3">PDF・JPEG・PNG を複数添付できます（1ファイル4MBまで）</p>
 
-          {/* テキスト入力 */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-1">テキストで補足入力 <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
-            <p className="text-xs text-[#6B7280] mb-2">日替わりメニューや追加食材など、ファイルに載っていない情報を自由に入力できます</p>
-            <textarea
-              value={menuText}
-              onChange={e => setMenuText(e.target.value)}
-              placeholder={`例：
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png"
+                      multiple
+                      onChange={e => addFiles(e.target.files)}
+                      className="hidden"
+                    />
+
+                    {files.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {files.map((f, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
+                            {f.type === 'application/pdf'
+                              ? <FileText size={16} className="text-green-600 flex-shrink-0" />
+                              : <ImageIcon size={16} className="text-green-600 flex-shrink-0" />
+                            }
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-[#111827] truncate">{f.name}</p>
+                              <p className="text-[10px] text-[#6B7280]">{(f.size / 1024).toFixed(0)} KB</p>
+                            </div>
+                            <button onClick={() => removeFile(i)} className="text-[#6B7280] hover:text-[#E8320A] flex-shrink-0">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
+                      onDragEnter={e => { e.preventDefault(); e.stopPropagation() }}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-[#E5E9F2] rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#E8320A] hover:bg-red-50 transition-all"
+                    >
+                      <Upload size={22} className="text-[#6B7280]" />
+                      <p className="text-xs font-bold text-[#111827]">ファイルを追加</p>
+                      <p className="text-[10px] text-[#6B7280]">タップ または ドラッグ＆ドロップ</p>
+                    </div>
+
+                    {fileError && (
+                      <div className="mt-2 bg-red-50 text-[#E8320A] text-xs px-3 py-2.5 rounded-xl whitespace-pre-wrap">
+                        {fileError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* テキスト入力 */}
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-1">テキストで補足入力 <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
+                    <p className="text-xs text-[#6B7280] mb-2">日替わりメニューや追加食材など、ファイルに載っていない情報を自由に入力できます</p>
+                    <textarea
+                      value={menuText}
+                      onChange={e => setMenuText(e.target.value)}
+                      placeholder={`例：
 本日のおすすめ：天然ぶり刺身 980円
 日替わり食材：松茸（今週のみ）
 ...`}
-              rows={4}
-              className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
-            />
-          </div>
+                      rows={4}
+                      className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+                    />
+                  </div>
 
-          {/* 希望欄 */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-0.5">希望・こだわり <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
-            <p className="text-xs text-[#6B7280] mb-2">ターゲットや食材へのこだわりなど、プランに反映させたい要望を自由に入力してください</p>
-            <textarea
-              value={wishes}
-              onChange={e => setWishes(e.target.value)}
-              placeholder={`例：
+                  {/* 希望欄 */}
+                  <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold text-[#111827] mb-0.5">希望・こだわり <span className="text-[#6B7280] font-normal text-xs">（任意）</span></p>
+                    <p className="text-xs text-[#6B7280] mb-2">ターゲットや食材へのこだわりなど、プランに反映させたい要望を自由に入力してください</p>
+                    <textarea
+                      value={wishes}
+                      onChange={e => setWishes(e.target.value)}
+                      placeholder={`例：
 ・仕事帰りのサラリーマン向けのコスパ重視プランにしたい
 ・インバウンド（中国富裕層）が喜ぶ豪華コースにしたい
 ・今まで扱ってこなかった高級食材を使って差別化したい
 ・平日限定の家族向けお食事メインプランが欲しい`}
-              rows={4}
-              className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
-            />
-          </div>
+                      rows={4}
+                      className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+                    />
+                  </div>
 
-          {/* 生成ボタン */}
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !canGenerate()}
-            className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6"
-          >
-            {loading ? '分析・生成中...' : '🍺 宴会プランを提案してもらう'}
-          </button>
+                  {/* 生成ボタン */}
+                  <button
+                    onClick={handleGenerate}
+                    disabled={loading || !canGenerate()}
+                    className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6"
+                  >
+                    {loading ? '分析・生成中...' : '🍺 宴会プランを提案してもらう'}
+                  </button>
 
-          {loading && (
-            <div className="bg-white border border-[#E5E9F2] rounded-2xl p-8 text-center mb-6">
-              <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-bold text-[#111827] text-sm">メニューを解析しています...</p>
-              <p className="text-xs text-[#6B7280] mt-1">全国の繁盛店データを参照して提案中</p>
+                  {loading && (
+                    <div className="bg-white border border-[#E5E9F2] rounded-2xl p-8 text-center mb-6">
+                      <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="font-bold text-[#111827] text-sm">メニューを解析しています...</p>
+                      <p className="text-xs text-[#6B7280] mt-1">全国の繁盛店データを参照して提案中</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {error && (
+                <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4 whitespace-pre-wrap">
+                  {error}
+                </div>
+              )}
+
+              {!loading && hasResults && (
+                <div className="space-y-4">
+                  <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest">
+                    提案プラン — {plans.length}案
+                  </p>
+                  {plans.map((plan, i) => (
+                    <PlanCard key={plan.number} plan={plan} index={i} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl mb-4 whitespace-pre-wrap">
-              {error}
-            </div>
-          )}
-
-          {!loading && hasResults && (
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest">
-                提案プラン — {plans.length}案
-              </p>
-              {plans.map((plan, i) => (
-                <PlanCard key={plan.number} plan={plan} index={i} />
-              ))}
-            </div>
-          )}
+          </main>
         </div>
       </div>
     </AuthGuard>

@@ -122,7 +122,7 @@ export interface GenerateResponse {
 export interface ChatThread {
   id: string
   shop_id: string
-  tool_name: 'chat' | 'advisor'
+  tool_name: 'chat' | 'advisor' | 'manual' | 'banquet'
   title: string
   created_at: string
   updated_at: string

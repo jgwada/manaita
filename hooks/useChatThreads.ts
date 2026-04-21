@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { ChatThread, ChatMessage } from '@/types'
 
-export function useChatThreads(shopId: string | undefined, toolName: 'chat' | 'advisor') {
+export function useChatThreads(shopId: string | undefined, toolName: 'chat' | 'advisor' | 'manual' | 'banquet') {
   const [threads, setThreads] = useState<ChatThread[]>([])
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null)
 

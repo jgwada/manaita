@@ -7,7 +7,7 @@ import { ChatMessage } from '@/types'
 
 interface Props {
   shopId: string | undefined
-  toolName: 'chat' | 'advisor'
+  toolName: 'chat' | 'advisor' | 'manual' | 'banquet'
   currentThreadId: string | null
   onSelectThread: (threadId: string, messages: ChatMessage[]) => void
   onNewThread: () => void
