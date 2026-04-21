@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/store'
 import { LogOut, Settings, ChevronLeft, Store } from 'lucide-react'
+import FeedbackButton from '@/components/ui/FeedbackButton'
 
 export default function Header() {
   const router = useRouter()
@@ -23,6 +24,8 @@ export default function Header() {
   const isAdminViewingShop = user?.role === 'admin' && shopProfile !== null
 
   return (
+    <>
+    <FeedbackButton />
     <header className="bg-white border-b border-[#E5E9F2] px-4 py-3 flex items-center justify-between shadow-sm">
       <button
         onClick={() => router.push('/')}
@@ -77,5 +80,6 @@ export default function Header() {
         </button>
       </div>
     </header>
+    </>
   )
 }

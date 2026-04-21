@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+type SystemBlockWithCache = { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }
+type WebSearchTool = { type: string; name: string }
+
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_TOKENS = 2000
 const CHAT_HISTORY_LIMIT = 10
@@ -62,7 +65,7 @@ export async function callClaudeChatStream(
       model: MODEL,
       max_tokens: maxTokens,
       ...(systemPrompt ? {
-        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] as any
+        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] as SystemBlockWithCache[]
       } : {}),
       messages: recentMessages,
     })
@@ -91,8 +94,7 @@ export async function callClaudeWithWebSearchStream(
     const stream = await client.messages.stream({
       model,
       max_tokens: maxTokens,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }] as WebSearchTool[],
       messages: [{ role: 'user', content: prompt }]
     })
     for await (const chunk of stream) {
