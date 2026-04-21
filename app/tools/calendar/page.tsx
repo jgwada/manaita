@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
-import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as CalendarIcon, Info } from 'lucide-react'
 
 // ---------- 型定義 ----------
 type CalendarEvent = {
@@ -16,6 +16,7 @@ type CalendarEvent = {
   scale: 'large' | 'medium'
   category: string
   impact: string
+  created_at?: string
 }
 
 type CalendarMemo = {
@@ -75,6 +76,8 @@ export default function CalendarPage() {
   const [generating, setGenerating] = useState(false)
   const [generateMsg, setGenerateMsg] = useState('')
   const [loading, setLoading] = useState(false)
+  // key: monthKey → nextAt ISO文字列（7日間クールダウン）
+  const [nextAtCache, setNextAtCache] = useState<Record<string, string | null>>({})
 
   const loadData = useCallback(async (y: number, m: number, force = false) => {
     if (!shopProfile?.id) return
@@ -89,7 +92,18 @@ export default function CalendarPage() {
     const [evJson, memoJson, wxJson] = await Promise.all([evRes.json(), memoRes.json(), wxRes.json()])
 
     if (evJson.success) {
-      setEventsCache(prev => ({ ...prev, [k]: evJson.data ?? [] }))
+      const evData: CalendarEvent[] = evJson.data ?? []
+      setEventsCache(prev => ({ ...prev, [k]: evData }))
+      // 最新の created_at から nextAt を計算
+      const latestCreatedAt = evData
+        .map(e => e.created_at)
+        .filter(Boolean)
+        .sort()
+        .at(-1)
+      if (latestCreatedAt) {
+        const nextAt = new Date(new Date(latestCreatedAt).getTime() + 7 * 24 * 60 * 60 * 1000)
+        setNextAtCache(prev => ({ ...prev, [k]: nextAt > new Date() ? nextAt.toISOString() : null }))
+      }
     }
     if (memoJson.success) {
       const map: Record<string, string> = {}
@@ -144,12 +158,20 @@ export default function CalendarPage() {
       body: JSON.stringify({ shopProfile, year: ty, month: tm }),
     })
     const json = await res.json()
-    if (json.success) {
+    if (json.cooldown) {
+      // クールダウン中
       const tk = monthKey(ty, tm)
-      // 取得結果をキャッシュに反映
+      setNextAtCache(prev => ({ ...prev, [tk]: json.nextAt }))
+      const daysLeft = Math.ceil((new Date(json.nextAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      setGenerateMsg(`取得済みです。次回取得可能まであと${daysLeft}日です。`)
+    } else if (json.success) {
+      const tk = monthKey(ty, tm)
       setEventsCache(prev => ({ ...prev, [tk]: json.data ?? [] }))
+      setNextAtCache(prev => ({
+        ...prev,
+        [tk]: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }))
       loadedRef.current.add(tk)
-      // 別月なら自動でその月に移動
       if (ty !== year || tm !== month) {
         setYear(ty); setMonth(tm); setSelectedDate(null)
         setGenerateMsg(`${ty}年${tm}月のイベントを${(json.data ?? []).length}件取得しました`)
@@ -166,6 +188,17 @@ export default function CalendarPage() {
   // 翌月・翌々月
   const nextMonth = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
   const nextNextMonth = nextMonth.m === 12 ? { y: nextMonth.y + 1, m: 1 } : { y: nextMonth.y, m: nextMonth.m + 1 }
+
+  // クールダウン判定ヘルパー
+  const getCooldown = (y: number, m: number) => {
+    const nextAt = nextAtCache[monthKey(y, m)]
+    if (!nextAt || new Date() >= new Date(nextAt)) return { onCooldown: false, daysLeft: 0 }
+    const daysLeft = Math.ceil((new Date(nextAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    return { onCooldown: true, daysLeft }
+  }
+  const currentCd = getCooldown(year, month)
+  const nextMonthCd = getCooldown(nextMonth.y, nextMonth.m)
+  const nextNextMonthCd = getCooldown(nextNextMonth.y, nextNextMonth.m)
 
   // .ics エクスポート
   const exportToIcs = () => {
@@ -254,14 +287,29 @@ export default function CalendarPage() {
               >
                 <CalendarIcon size={12} />.ics
               </button>
+              {/* インフォアイコン */}
+              <div className="relative group">
+                <Info size={14} className="text-[#C4C9D4] cursor-help" />
+                <div className="absolute hidden group-hover:block bottom-full right-0 mb-2 w-56 bg-[#111827] text-white text-[10px] rounded-xl px-3 py-2.5 z-20 leading-relaxed shadow-lg">
+                  AIでのイベント取得は<span className="font-bold text-amber-300">7日間に1度</span>のみです。一度取得したら7日間は再取得できません。
+                  <span className="absolute top-full right-3 border-4 border-transparent border-t-[#111827]" />
+                </div>
+              </div>
+              {/* AI取得ボタン */}
               <button
                 onClick={() => handleGenerate()}
-                disabled={generating}
-                className="flex items-center gap-1.5 bg-[#E8320A] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#c92b09] transition-colors disabled:opacity-50"
+                disabled={generating || currentCd.onCooldown}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors ${
+                  currentCd.onCooldown
+                    ? 'bg-[#F1F3F8] text-[#9CA3AF] cursor-not-allowed'
+                    : 'bg-[#E8320A] text-white hover:bg-[#c92b09] disabled:opacity-50'
+                }`}
               >
                 {generating
                   ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />取得中...</>
-                  : <><Sparkles size={12} />AI取得</>
+                  : currentCd.onCooldown
+                    ? <>あと{currentCd.daysLeft}日</>
+                    : <><Sparkles size={12} />AI取得</>
                 }
               </button>
             </div>
@@ -271,17 +319,31 @@ export default function CalendarPage() {
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => handleGenerate(nextMonth.y, nextMonth.m)}
-              disabled={generating}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
+              disabled={generating || nextMonthCd.onCooldown}
+              className={`flex-1 flex items-center justify-center gap-1.5 bg-white border text-xs font-medium px-3 py-2 rounded-xl transition-colors ${
+                nextMonthCd.onCooldown
+                  ? 'border-[#E5E9F2] text-[#C4C9D4] cursor-not-allowed'
+                  : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A] hover:text-[#E8320A] disabled:opacity-50'
+              }`}
             >
-              <Sparkles size={11} />{nextMonth.m}月を先取り取得
+              <Sparkles size={11} />
+              {nextMonthCd.onCooldown
+                ? `${nextMonth.m}月（あと${nextMonthCd.daysLeft}日）`
+                : `${nextMonth.m}月を先取り取得`}
             </button>
             <button
               onClick={() => handleGenerate(nextNextMonth.y, nextNextMonth.m)}
-              disabled={generating}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-[#E5E9F2] text-[#6B7280] text-xs font-medium px-3 py-2 rounded-xl hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-50"
+              disabled={generating || nextNextMonthCd.onCooldown}
+              className={`flex-1 flex items-center justify-center gap-1.5 bg-white border text-xs font-medium px-3 py-2 rounded-xl transition-colors ${
+                nextNextMonthCd.onCooldown
+                  ? 'border-[#E5E9F2] text-[#C4C9D4] cursor-not-allowed'
+                  : 'border-[#E5E9F2] text-[#6B7280] hover:border-[#E8320A] hover:text-[#E8320A] disabled:opacity-50'
+              }`}
             >
-              <Sparkles size={11} />{nextNextMonth.m}月を先取り取得
+              <Sparkles size={11} />
+              {nextNextMonthCd.onCooldown
+                ? `${nextNextMonth.m}月（あと${nextNextMonthCd.daysLeft}日）`
+                : `${nextNextMonth.m}月を先取り取得`}
             </button>
           </div>
 

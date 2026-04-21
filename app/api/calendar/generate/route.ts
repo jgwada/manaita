@@ -6,6 +6,8 @@ import { callClaudeWithWebSearch } from '@/lib/claude'
 import { buildCalendarEventsPrompt } from '@/lib/prompts/calendar'
 import { ShopProfile } from '@/types'
 
+const COOLDOWN_DAYS = 7
+
 type EventRow = {
   date: string
   end_date?: string | null
@@ -22,6 +24,28 @@ export async function POST(req: Request) {
       shopProfile: ShopProfile
       year: number
       month: number
+    }
+
+    const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
+    const monthTo   = `${year}-${String(month).padStart(2, '0')}-31`
+
+    // 7日間クールダウンチェック
+    const { data: recent } = await supabaseAdmin
+      .from('calendar_events')
+      .select('created_at')
+      .eq('shop_id', shopProfile.id)
+      .gte('date', monthFrom)
+      .lte('date', monthTo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (recent?.created_at) {
+      const lastAt = new Date(recent.created_at)
+      const nextAt = new Date(lastAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
+      if (new Date() < nextAt) {
+        return NextResponse.json({ success: false, cooldown: true, nextAt: nextAt.toISOString() })
+      }
     }
 
     const prompt = buildCalendarEventsPrompt(shopProfile, year, month)
@@ -42,8 +66,8 @@ export async function POST(req: Request) {
       .from('calendar_events')
       .delete()
       .eq('shop_id', shopProfile.id)
-      .gte('date', `${year}-${String(month).padStart(2, '0')}-01`)
-      .lte('date', `${year}-${String(month).padStart(2, '0')}-31`)
+      .gte('date', monthFrom)
+      .lte('date', monthTo)
 
     const rows = events
       .filter(e => e.date && e.title)
