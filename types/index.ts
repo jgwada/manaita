@@ -119,6 +119,23 @@ export interface GenerateResponse {
   error?: string
 }
 
+export interface ChatThread {
+  id: string
+  shop_id: string
+  tool_name: 'chat' | 'advisor'
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  thread_id: string
+  role: string
+  content: { text?: string; members?: { key: string; text: string }[] }
+  created_at: string
+}
+
 export interface ChatRequest {
   messages: { role: 'user' | 'assistant'; content: string }[]
   shopProfile: ShopProfile

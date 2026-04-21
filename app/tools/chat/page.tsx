@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Send, FileText, ClipboardList, Plus, CheckCircle } from 'lucide-react'
+import ThreadSidebar from '@/components/chat/ThreadSidebar'
+import { useChatThreads } from '@/hooks/useChatThreads'
+import { ChatMessage } from '@/types'
+import { Send, FileText, ClipboardList, Plus, CheckCircle, Menu } from 'lucide-react'
 
 const MEMBERS = [
   { key: '経営顧問｜田村',           short: '経営顧問',          name: '田村', emoji: '💼', color: 'bg-slate-50 border-slate-200',   nameColor: 'text-slate-700',   dot: 'bg-slate-500' },
@@ -33,6 +36,15 @@ type Turn =
   | { role: 'owner'; text: string }
   | { role: 'team'; members: MemberMessage[] }
   | { role: 'summary'; text: string }
+
+function messagesToTurns(messages: ChatMessage[]): Turn[] {
+  return messages.flatMap(msg => {
+    if (msg.role === 'owner' && msg.content.text) return [{ role: 'owner' as const, text: msg.content.text }]
+    if (msg.role === 'team' && msg.content.members) return [{ role: 'team' as const, members: msg.content.members }]
+    if (msg.role === 'summary' && msg.content.text) return [{ role: 'summary' as const, text: msg.content.text }]
+    return []
+  })
+}
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -113,11 +125,36 @@ export default function ChatPage() {
   const [actionText, setActionText] = useState('')
   const [actionSavedIndices, setActionSavedIndices] = useState<number[]>([])
   const [actionSaving, setActionSaving] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  const { fetchThreads, createThread, saveMessage, updateTitle, deleteThread, threads } = useChatThreads(shopProfile?.id, 'chat')
+
+  useEffect(() => {
+    if (shopProfile?.id) fetchThreads()
+  }, [shopProfile?.id, fetchThreads])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [turns, streamText])
+
+  const handleSelectThread = useCallback((threadId: string, messages: ChatMessage[]) => {
+    setCurrentThreadId(threadId)
+    setTurns(messagesToTurns(messages))
+    setActionSavedIndices([])
+    setActionOpenIdx(null)
+    setError('')
+  }, [])
+
+  const handleNewThread = useCallback(() => {
+    setCurrentThreadId(null)
+    setTurns([])
+    setActionSavedIndices([])
+    setActionOpenIdx(null)
+    setError('')
+    setInput('')
+  }, [])
 
   const buildMessages = (userText: string) => {
     const msgs: { role: 'user' | 'assistant'; content: string }[] = []
@@ -140,6 +177,13 @@ export default function ChatPage() {
     setStreamText('')
     setTurns(prev => [...prev, { role: 'owner', text: msg }])
     setLoading(true)
+
+    // スレッドIDを確保（初回送信時に作成）
+    let threadId = currentThreadId
+    if (!threadId) {
+      threadId = await createThread(msg.slice(0, 40))
+      if (threadId) setCurrentThreadId(threadId)
+    }
 
     try {
       const response = await fetch('/api/chat', {
@@ -164,7 +208,13 @@ export default function ChatPage() {
       if (result.startsWith('ERROR:')) {
         setError(result.replace('ERROR:', '').trim())
       } else {
-        setTurns(prev => [...prev, { role: 'team', members: parseMemberMessages(result) }])
+        const members = parseMemberMessages(result)
+        setTurns(prev => [...prev, { role: 'team', members }])
+        // DBに保存（fire-and-forget）
+        if (threadId) {
+          saveMessage(threadId, 'owner', { text: msg })
+          saveMessage(threadId, 'team', { members })
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '送信に失敗しました。')
@@ -195,6 +245,7 @@ export default function ChatPage() {
       }
       if (!result.startsWith('ERROR:')) {
         setTurns(prev => [...prev, { role: 'summary', text: result }])
+        if (currentThreadId) saveMessage(currentThreadId, 'summary', { text: result })
       }
     } catch {
       // サイレントフェイル
@@ -231,190 +282,200 @@ export default function ChatPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F1F3F8] flex flex-col">
+      <div className="h-screen bg-[#F1F3F8] flex flex-col overflow-hidden">
         <Header />
-        <div className="max-w-lg mx-auto w-full px-4 py-6 flex flex-col flex-1">
-          <PageHeader
-            title="なんでも経営相談AI"
-            description="9人の専門家チームが経営の悩みに何でも答えます"
-            backHref="/"
+        <div className="flex flex-1 overflow-hidden">
+          {/* サイドバー */}
+          <ThreadSidebar
+            shopId={shopProfile?.id}
+            toolName="chat"
+            currentThreadId={currentThreadId}
+            onSelectThread={handleSelectThread}
+            onNewThread={handleNewThread}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           />
 
-          {/* ウェルカム */}
-          {showWelcome && (
-            <div className="space-y-3 mb-4">
-              {/* チーム紹介 */}
-              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
-                <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">あなたの専門家チーム</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {MEMBERS.map(m => (
-                    <div key={m.key} className={`flex items-center gap-2 border rounded-xl p-2 ${m.color}`}>
-                      <span className="text-sm">{m.emoji}</span>
-                      <span className={`text-[10px] font-bold leading-tight ${m.nameColor}`}>{m.short}</span>
+          {/* メインエリア */}
+          <main className="flex-1 flex flex-col overflow-hidden">
+            <div className="max-w-lg mx-auto w-full px-4 pt-6 pb-0 flex flex-col flex-1 overflow-hidden">
+              {/* ページヘッダー（モバイルにハンバーガーボタン追加） */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden w-8 h-8 flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-white rounded-lg transition-colors flex-shrink-0"
+                >
+                  <Menu size={18} />
+                </button>
+                <div className="flex-1">
+                  <PageHeader
+                    title="なんでも経営相談AI"
+                    description="9人の専門家チームが経営の悩みに何でも答えます"
+                    backHref="/"
+                  />
+                </div>
+              </div>
+
+              {/* チャットスクロールエリア */}
+              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+                {/* ウェルカム */}
+                {showWelcome && (
+                  <div className="space-y-3">
+                    <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
+                      <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">あなたの専門家チーム</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {MEMBERS.map(m => (
+                          <div key={m.key} className={`flex items-center gap-2 border rounded-xl p-2 ${m.color}`}>
+                            <span className="text-sm">{m.emoji}</span>
+                            <span className={`text-[10px] font-bold leading-tight ${m.nameColor}`}>{m.short}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* サジェスト */}
-              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
-                <p className="text-xs font-bold text-[#6B7280] mb-3">💡 こんなことを相談できます</p>
-                <div className="space-y-2">
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSend(s)}
-                      className="w-full text-left text-xs text-[#111827] border border-[#E5E9F2] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* チャット */}
-          <div className="flex-1 space-y-4 mb-4">
-            {turns.map((turn, i) => {
-              if (turn.role === 'owner') {
-                return (
-                  <div key={i} className="flex justify-end">
-                    <div className="max-w-[85%]">
-                      <p className="text-[10px] text-[#6B7280] text-right mb-1">オーナー（あなた）</p>
-                      <div className="bg-[#E8320A] text-white rounded-2xl rounded-tr-sm px-4 py-3">
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                    <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
+                      <p className="text-xs font-bold text-[#6B7280] mb-3">💡 こんなことを相談できます</p>
+                      <div className="space-y-2">
+                        {SUGGESTIONS.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleSend(s)}
+                            className="w-full text-left text-xs text-[#111827] border border-[#E5E9F2] rounded-xl px-3 py-2.5 hover:border-[#E8320A] hover:bg-red-50 transition-colors"
+                          >
+                            {s}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
-                )
-              }
-              if (turn.role === 'summary') {
-                return (
-                  <div key={i} className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
+                )}
+
+                {/* チャット */}
+                {turns.map((turn, i) => {
+                  if (turn.role === 'owner') {
+                    return (
+                      <div key={i} className="flex justify-end">
+                        <div className="max-w-[85%]">
+                          <p className="text-[10px] text-[#6B7280] text-right mb-1">オーナー（あなた）</p>
+                          <div className="bg-[#E8320A] text-white rounded-2xl rounded-tr-sm px-4 py-3">
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  if (turn.role === 'summary') {
+                    return (
+                      <div key={i} className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500">
+                          <ClipboardList size={14} className="text-white" />
+                          <span className="text-xs font-bold text-white">相談の要約・議事録</span>
+                        </div>
+                        <div className="px-4 py-3">
+                          <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={i} className="space-y-3">
+                      {turn.members.map(m => <MemberBubble key={m.key} memberKey={m.key} text={m.text} />)}
+                      {actionSavedIndices.includes(i) ? (
+                        <div className="flex justify-end">
+                          <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                            <CheckCircle size={13} /> 施策に追加済み
+                          </span>
+                        </div>
+                      ) : actionOpenIdx === i ? (
+                        <div className="bg-white border border-[#E5E9F2] rounded-xl p-3 space-y-2">
+                          <p className="text-xs font-medium text-[#6B7280]">施策メモに追加する内容を入力</p>
+                          <textarea
+                            value={actionText}
+                            onChange={e => setActionText(e.target.value)}
+                            placeholder="例：SNS投稿を週3回実施する"
+                            rows={2}
+                            className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
+                            autoFocus
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => { setActionOpenIdx(null); setActionText('') }} className="text-xs text-[#6B7280] hover:text-[#111827] px-3 py-1.5">キャンセル</button>
+                            <button onClick={() => addToActions(i)} disabled={!actionText.trim() || actionSaving} className="flex items-center gap-1 text-xs bg-[#E8320A] text-white rounded-lg px-3 py-1.5 hover:bg-[#c92b09] disabled:opacity-40 disabled:cursor-not-allowed">
+                              <Plus size={12} /> 追加する
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => { setActionOpenIdx(i); setActionText(turn.members.map(m => m.text).join('\n\n').slice(0, 100)) }}
+                            className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#E8320A] border border-[#E5E9F2] hover:border-[#E8320A] bg-white rounded-full px-3 py-1.5 transition-colors"
+                          >
+                            <Plus size={12} /> 施策に追加
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {loading && streamText && <StreamingBubble text={streamText} />}
+                {loading && !streamText && (
+                  <div className="flex items-center gap-2 text-[#6B7280]">
+                    <div className="flex gap-1">
+                      {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-[#9A8880] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
+                    </div>
+                    <span className="text-xs">チームが考えています...</span>
+                  </div>
+                )}
+                {summarizing && (
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500">
                       <ClipboardList size={14} className="text-white" />
                       <span className="text-xs font-bold text-white">相談の要約・議事録</span>
+                      <span className="ml-auto flex gap-0.5">{[0,1,2].map(i => <span key={i} className="w-1 h-1 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</span>
                     </div>
                     <div className="px-4 py-3">
-                      <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                      <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{summaryStream || '　'}</p>
                     </div>
                   </div>
-                )
-              }
-              return (
-                <div key={i} className="space-y-3">
-                  {turn.members.map(m => <MemberBubble key={m.key} memberKey={m.key} text={m.text} />)}
-                  {/* 施策に追加ボタン */}
-                  {actionSavedIndices.includes(i) ? (
-                    <div className="flex justify-end">
-                      <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                        <CheckCircle size={13} /> 施策に追加済み
-                      </span>
-                    </div>
-                  ) : actionOpenIdx === i ? (
-                    <div className="bg-white border border-[#E5E9F2] rounded-xl p-3 space-y-2">
-                      <p className="text-xs font-medium text-[#6B7280]">施策メモに追加する内容を入力</p>
-                      <textarea
-                        value={actionText}
-                        onChange={e => setActionText(e.target.value)}
-                        placeholder="例：SNS投稿を週3回実施する"
-                        rows={2}
-                        className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
-                        autoFocus
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => { setActionOpenIdx(null); setActionText('') }}
-                          className="text-xs text-[#6B7280] hover:text-[#111827] px-3 py-1.5"
-                        >
-                          キャンセル
-                        </button>
-                        <button
-                          onClick={() => addToActions(i)}
-                          disabled={!actionText.trim() || actionSaving}
-                          className="flex items-center gap-1 text-xs bg-[#E8320A] text-white rounded-lg px-3 py-1.5 hover:bg-[#c92b09] disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Plus size={12} /> 追加する
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => {
-                          setActionOpenIdx(i)
-                          setActionText(turn.members.map(m => m.text).join('\n\n').slice(0, 100))
-                        }}
-                        className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#E8320A] border border-[#E5E9F2] hover:border-[#E8320A] bg-white rounded-full px-3 py-1.5 transition-colors"
-                      >
-                        <Plus size={12} /> 施策に追加
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-
-            {loading && streamText && <StreamingBubble text={streamText} />}
-            {loading && !streamText && (
-              <div className="flex items-center gap-2 text-[#6B7280]">
-                <div className="flex gap-1">
-                  {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-[#9A8880] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
-                </div>
-                <span className="text-xs">チームが考えています...</span>
+                )}
+                {error && <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl">{error}</div>}
+                <div ref={bottomRef} />
               </div>
-            )}
-            {summarizing && (
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500">
-                  <ClipboardList size={14} className="text-white" />
-                  <span className="text-xs font-bold text-white">相談の要約・議事録</span>
-                  <span className="ml-auto flex gap-0.5">
-                    {[0,1,2].map(i => <span key={i} className="w-1 h-1 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
-                  </span>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-sm text-[#111827] leading-relaxed whitespace-pre-wrap">{summaryStream || '　'}</p>
-                </div>
-              </div>
-            )}
-            {error && <div className="bg-red-50 text-[#E8320A] text-sm px-4 py-3 rounded-xl">{error}</div>}
-            <div ref={bottomRef} />
-          </div>
 
-          {/* 要約ボタン */}
-          {turns.length >= 2 && (
-            <div className="mb-2 flex justify-center">
-              <button
-                onClick={handleSummary}
-                disabled={summarizing || loading}
-                className="flex items-center gap-2 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 rounded-full px-4 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FileText size={13} />
-                {summarizing ? '要約を生成中...' : 'ここまでを要約する'}
-              </button>
+              {/* 要約ボタン */}
+              {turns.length >= 2 && (
+                <div className="mb-2 flex justify-center">
+                  <button
+                    onClick={handleSummary}
+                    disabled={summarizing || loading}
+                    className="flex items-center gap-2 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 rounded-full px-4 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileText size={13} />
+                    {summarizing ? '要約を生成中...' : 'ここまでを要約する'}
+                  </button>
+                </div>
+              )}
+
+              {/* 入力エリア */}
+              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-3 flex gap-2 items-end mb-4">
+                <textarea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="経営の悩みを何でも相談してください..."
+                  rows={2}
+                  className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
+                />
+                <button
+                  onClick={() => handleSend()}
+                  disabled={loading || !input.trim()}
+                  className="bg-[#E8320A] text-white rounded-xl p-2.5 hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
             </div>
-          )}
-
-          {/* 入力 */}
-          <div className="bg-white border border-[#E5E9F2] rounded-2xl p-3 flex gap-2 items-end sticky bottom-4">
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="経営の悩みを何でも相談してください..."
-              rows={2}
-              className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={loading || !input.trim()}
-              className="bg-[#E8320A] text-white rounded-xl p-2.5 hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              <Send size={18} />
-            </button>
-          </div>
+          </main>
         </div>
       </div>
     </AuthGuard>
