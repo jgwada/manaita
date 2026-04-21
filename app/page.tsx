@@ -36,7 +36,7 @@ const phase3Tools = [
   { icon: Search, name: '競合リサーチ', description: '業態・地域の競合傾向と差別化ポイントをAIが分析', href: '/tools/research', gradient: 'from-violet-400 to-indigo-500' },
   { icon: MessageSquare, name: '集客戦略アドバイザー', description: '宴会・集客・SNS戦略をAIとチャットで相談', href: '/tools/advisor', gradient: 'from-blue-400 to-violet-500' },
   { icon: MessageCircle, name: 'なんでも経営相談', description: '経営の悩みをなんでも気軽に相談できるAI', href: '/tools/chat', gradient: 'from-orange-400 to-red-500' },
-  { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price', disabled: true, gradient: 'from-amber-400 to-orange-500' },
+  { icon: Tag, name: '価格相場チェッカー', description: 'メニューの価格が高め・適正・安めかをAIが判定', href: '/tools/price', gradient: 'from-amber-400 to-orange-500' },
 ]
 
 const getStarterTools = (hasResearch: boolean) => [
