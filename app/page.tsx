@@ -17,7 +17,6 @@ import {
 const phase1Tools = [
   { icon: Instagram, name: 'SNS投稿文', description: 'Instagram・X・Google用の投稿文を10秒で生成', href: '/tools/sns', gradient: 'from-pink-400 to-rose-500' },
   { icon: Star, name: 'Google口コミ返信', description: '高評価・低評価どちらにも最適な返信文を生成', href: '/tools/review', gradient: 'from-yellow-400 to-orange-500' },
-  { icon: Users, name: '求人票・募集文', description: 'アルバイト・社員・シフト募集の文章を自動作成', href: '/tools/recruit', disabled: true, gradient: 'from-violet-400 to-purple-500' },
   { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet', gradient: 'from-orange-400 to-red-500' },
   { icon: Star, name: '満足度アンケートメーカー', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard', gradient: 'from-emerald-400 to-teal-500' },
   { icon: MapPin, name: 'Google情報メーカー', description: 'GoogleマップURLからPlace IDを自動取得', href: '/tools/google-info', gradient: 'from-blue-400 to-cyan-500' },
