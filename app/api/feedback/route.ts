@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       .eq('id', authUser.id)
       .single()
 
-    const { type, title, description } = await req.json()
+    const { type, title, description, imageUrl } = await req.json()
     if (!type || !title || !description) {
       return NextResponse.json({ success: false, error: 'missing fields' }, { status: 400 })
     }
@@ -51,6 +51,7 @@ export async function POST(req: Request) {
       type,
       title,
       description,
+      image_url: imageUrl ?? null,
       status: 'new',
     })
 
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
               <div style="background: #F9FAFB; border-left: 4px solid #E8320A; padding: 16px; border-radius: 0 8px 8px 0; margin: 16px 0;">
                 <p style="white-space: pre-wrap; margin: 0; color: #374151;">${description}</p>
               </div>
+              ${imageUrl ? `<div style="margin: 16px 0;"><p style="font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 8px;">📸 スクリーンショット</p><img src="${imageUrl}" alt="screenshot" style="max-width: 100%; border-radius: 8px; border: 1px solid #E5E7EB;" /></div>` : ''}
               <p style="color: #9CA3AF; font-size: 12px; margin-top: 24px;">
                 送信日時：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
               </p>

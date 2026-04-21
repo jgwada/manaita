@@ -10,7 +10,7 @@ import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mai
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_prev_cache: string | null; research_updated_at: string | null }
 type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
 type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; output_summary: string | null; created_at: string; shops: { name: string } | null }
-type Feedback = { id: string; shop_name: string | null; user_email: string | null; type: string; title: string; description: string; status: string; created_at: string }
+type Feedback = { id: string; shop_name: string | null; user_email: string | null; type: string; title: string; description: string; status: string; image_url: string | null; created_at: string }
 
 const TOOL_LABELS: Record<string, string> = {
   sns: 'SNS文章',
@@ -571,6 +571,11 @@ export default function AdminPage() {
                     {isExpanded && (
                       <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">
                         <p className="text-xs text-[#374151] whitespace-pre-wrap mb-3">{fb.description}</p>
+                        {fb.image_url && (
+                          <a href={fb.image_url} target="_blank" rel="noopener noreferrer" className="block mb-3">
+                            <img src={fb.image_url} alt="screenshot" className="max-h-48 rounded-xl border border-[#E5E9F2] object-contain hover:opacity-80 transition-opacity" />
+                          </a>
+                        )}
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-[#6B7280]">ステータス：</span>
                           {(['new', 'in_progress', 'resolved'] as const).map((s) => (

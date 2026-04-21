@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { MessageSquarePlus, X, Bug, Lightbulb, MessageCircle, Send, CheckCircle } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { MessageSquarePlus, X, Bug, Lightbulb, MessageCircle, Send, CheckCircle, ImagePlus, Trash2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 const TYPES = [
   { value: 'bug', label: 'バグ報告', icon: Bug, color: 'text-red-500', bg: 'bg-red-50 border-red-200' },
@@ -18,15 +19,41 @@ export default function FeedbackButton() {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) return
     setLoading(true)
     try {
+      let imageUrl: string | null = null
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop()
+        const path = `${Date.now()}.${ext}`
+        const { error } = await supabase.storage.from('feedback-images').upload(path, imageFile)
+        if (!error) {
+          const { data } = supabase.storage.from('feedback-images').getPublicUrl(path)
+          imageUrl = data.publicUrl
+        }
+      }
       await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, title: title.trim(), description: description.trim() }),
+        body: JSON.stringify({ type, title: title.trim(), description: description.trim(), imageUrl }),
       })
       setDone(true)
       setTimeout(() => {
@@ -35,6 +62,7 @@ export default function FeedbackButton() {
         setTitle('')
         setDescription('')
         setType('feature')
+        removeImage()
       }, 2000)
     } finally {
       setLoading(false)
@@ -105,7 +133,7 @@ export default function FeedbackButton() {
                 </div>
 
                 {/* 詳細 */}
-                <div className="mb-5">
+                <div className="mb-4">
                   <label className="text-xs font-medium text-[#374151] mb-1.5 block">詳細</label>
                   <textarea
                     value={description}
@@ -113,6 +141,40 @@ export default function FeedbackButton() {
                     placeholder="どんな状況で起きたか、どんな機能がほしいかを教えてください"
                     rows={4}
                     className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#E8320A] transition-colors resize-none"
+                  />
+                </div>
+
+                {/* 画像添付 */}
+                <div className="mb-5">
+                  <label className="text-xs font-medium text-[#374151] mb-1.5 block">
+                    スクリーンショット
+                    <span className="text-[#9CA3AF] font-normal ml-1">（任意）バグ画面の場合は貼ってください</span>
+                  </label>
+                  {imagePreview ? (
+                    <div className="relative inline-block">
+                      <img src={imagePreview} alt="preview" className="max-h-32 rounded-xl border border-[#E5E9F2] object-contain" />
+                      <button
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-[#111827] rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 text-xs text-[#6B7280] border border-dashed border-[#D1D5DB] rounded-xl px-4 py-3 hover:border-[#E8320A] hover:text-[#E8320A] transition-colors w-full justify-center"
+                    >
+                      <ImagePlus size={14} />
+                      画像を追加
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
                   />
                 </div>
 
