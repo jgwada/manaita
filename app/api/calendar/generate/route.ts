@@ -8,6 +8,7 @@ import { ShopProfile } from '@/types'
 
 type EventRow = {
   date: string
+  end_date?: string | null
   title: string
   description: string
   scale: 'large' | 'medium'
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
       .map(e => ({
         shop_id: shopProfile.id,
         date: e.date,
+        end_date: e.end_date ?? null,
         title: e.title,
         description: e.description ?? '',
         scale: e.scale ?? 'medium',

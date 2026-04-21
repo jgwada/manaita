@@ -35,11 +35,12 @@ export async function GET() {
 
         await supabaseAdmin.from('calendar_events').insert(
           events.filter((e: { date?: string; title?: string }) => e.date && e.title).map((e: {
-            date: string; title: string; description?: string;
+            date: string; end_date?: string | null; title: string; description?: string;
             scale?: string; category?: string; impact?: string
           }) => ({
             shop_id: shop.id,
             date: e.date,
+            end_date: e.end_date ?? null,
             title: e.title,
             description: e.description ?? '',
             scale: e.scale ?? 'medium',

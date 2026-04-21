@@ -37,6 +37,7 @@ Web検索を使って「${shop.area}」周辺で${monthStr}〜${nextYear}年${ne
 [
   {
     "date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD または null（1日のみの場合はnull）",
     "title": "イベント名",
     "description": "概要（1〜2文、開催場所・規模・特徴）",
     "scale": "large" または "medium",
@@ -46,6 +47,8 @@ Web検索を使って「${shop.area}」周辺で${monthStr}〜${nextYear}年${ne
 ]
 
 ※ scale: large = 数千人〜数万人規模、medium = 数百〜数千人規模
+※ 複数日にわたるイベント（祭り・フェス・桜まつりなど）は必ず end_date を設定すること
+※ 1日のみのイベントは end_date を null にすること
 ※ 確認できたイベントのみ記載（情報が不確かなものは除外）
 ※ 見つからない場合は空配列 [] を返す
 `

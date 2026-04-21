@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as Cale
 type CalendarEvent = {
   id: string
   date: string
+  end_date?: string | null
   title: string
   description: string
   scale: 'large' | 'medium'
@@ -175,7 +176,8 @@ export default function CalendarPage() {
     ]
     for (const ev of events) {
       const d = ev.date.replace(/-/g, '')
-      const nd = new Date(new Date(ev.date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      const endBase = ev.end_date ?? ev.date
+      const nd = new Date(new Date(endBase).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
       lines.push('BEGIN:VEVENT', `UID:manaita-ev-${ev.id}@manaita`,
         `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nd}`, `SUMMARY:${ev.title}`)
       if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`)
@@ -205,11 +207,18 @@ export default function CalendarPage() {
     setEventsCache(prev => ({ ...prev, [key]: (prev[key] ?? []).filter(e => e.id !== id) }))
   }
 
-  // 各日のイベントマップ
+  // 各日のイベントマップ（複数日イベントは全日付に展開）
   const eventsByDate: Record<string, CalendarEvent[]> = {}
   for (const ev of events) {
-    if (!eventsByDate[ev.date]) eventsByDate[ev.date] = []
-    eventsByDate[ev.date].push(ev)
+    const start = new Date(ev.date + 'T00:00:00')
+    const end = ev.end_date ? new Date(ev.end_date + 'T00:00:00') : start
+    const cur = new Date(start)
+    while (cur <= end) {
+      const ds = cur.toISOString().slice(0, 10)
+      if (!eventsByDate[ds]) eventsByDate[ds] = []
+      eventsByDate[ds].push(ev)
+      cur.setDate(cur.getDate() + 1)
+    }
   }
 
   const dates = getDates(year, month)
@@ -326,6 +335,15 @@ export default function CalendarPage() {
                   const hasMedium = !hasLarge && dayEvents.some(e => e.scale === 'medium')
                   const firstEvent = dayEvents[0]
 
+                  // 複数日イベントの判定
+                  const evIsMultiDay = firstEvent
+                    ? (!!firstEvent.end_date && firstEvent.end_date !== firstEvent.date)
+                    : false
+                  const evIsStart = firstEvent ? firstEvent.date === dateStr : false
+                  const evIsEnd = firstEvent
+                    ? ((firstEvent.end_date ?? firstEvent.date) === dateStr)
+                    : false
+
                   return (
                     <button
                       key={dateStr}
@@ -355,12 +373,23 @@ export default function CalendarPage() {
                         </span>
                       )}
 
-                      {/* イベントタイトル（最初の1件） */}
+                      {/* イベントタイトル */}
                       {firstEvent && (
                         <span className={`text-[9px] font-semibold leading-tight mt-1 line-clamp-2 w-full ${
                           firstEvent.scale === 'large' ? 'text-[#E8320A]' : 'text-amber-600'
-                        }`}>
+                        } ${evIsMultiDay && !evIsStart ? 'opacity-75' : ''}`}>
+                          {evIsMultiDay && !evIsStart && '▸ '}
                           {firstEvent.title}
+                          {evIsMultiDay && evIsEnd && !evIsStart && ' ◂'}
+                        </span>
+                      )}
+
+                      {/* 複数日イベントの開始日に「〜xx日」表示 */}
+                      {evIsMultiDay && evIsStart && firstEvent?.end_date && (
+                        <span className={`text-[8px] leading-none ${
+                          firstEvent.scale === 'large' ? 'text-[#E8320A]/60' : 'text-amber-500/70'
+                        }`}>
+                          〜{parseInt(firstEvent.end_date.slice(8, 10))}日
                         </span>
                       )}
 
@@ -416,6 +445,11 @@ export default function CalendarPage() {
                             <span className="text-[10px] text-[#9CA3AF] bg-white px-1.5 py-0.5 rounded-full border border-[#E5E9F2]">{ev.category}</span>
                           </div>
                           <p className="text-sm font-bold text-[#111827] leading-snug">{ev.title}</p>
+                          {ev.end_date && ev.end_date !== ev.date && (
+                            <p className="text-[10px] text-[#6B7280] mt-0.5">
+                              📅 {parseInt(ev.date.slice(5, 7))}月{parseInt(ev.date.slice(8, 10))}日〜{parseInt(ev.end_date.slice(5, 7))}月{parseInt(ev.end_date.slice(8, 10))}日
+                            </p>
+                          )}
                           {ev.description && <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">{ev.description}</p>}
                           {ev.impact && <p className="text-xs text-[#E8320A] mt-1.5 font-medium">💡 {ev.impact}</p>}
                         </div>
