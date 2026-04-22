@@ -255,25 +255,43 @@ export default function FlPage() {
     }
   }
 
+  // CSV列ヘッダーからカラムインデックスをマッピング（Airレジ・Square対応）
+  const detectCsvColumns = (headers: string[]): { name: number; price: number; category: number } => {
+    const h = headers.map(s => s.toLowerCase().replace(/\s/g, ''))
+    const find = (...keys: string[]) => h.findIndex(c => keys.some(k => c.includes(k)))
+    return {
+      name: find('商品名', 'メニュー名', 'item', '品名', '名称') ?? 0,
+      price: find('単価', '売価', '価格', 'price', '金額', '販売価格') ?? 1,
+      category: find('カテゴリ', 'category', '分類', '種別') ?? 3,
+    }
+  }
+
   // Excel / CSV パース
   const handleFileParse = async (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase()
     try {
       if (ext === 'csv') {
-        const text = await file.text()
-        const lines = text.split('\n').filter(l => l.trim())
-        // ヘッダー行スキップ（1行目がメニュー名/売価などの場合）
-        const startIdx = lines[0].match(/^[^\d].*[^\d]$/) ? 1 : 0
+        const raw = await file.arrayBuffer()
+        // BOM付きUTF-8 / Shift-JIS両対応
+        let text = new TextDecoder('utf-8').decode(raw)
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
+        if (/[\uFFFD]{3,}/.test(text)) text = new TextDecoder('shift-jis').decode(raw)
+        const lines = text.split(/\r?\n/).filter(l => l.trim())
+        const headers = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim())
+        const hasHeader = isNaN(Number(headers[0].replace(/[^0-9]/g, '')))
+        const startIdx = hasHeader ? 1 : 0
+        const { name: ni, price: pi, category: ci } = detectCsvColumns(headers)
         const rows: PendingMenu[] = lines.slice(startIdx).map((line, i): PendingMenu => {
           const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim())
+          const cat = cols[ci] ?? ''
           return {
             id: `csv-${i}`,
-            menu_name: cols[0] ?? '',
-            sell_price: cols[1] ? parseInt(cols[1].replace(/[^0-9]/g, '')) || null : null,
-            cost_price: cols[2] ? cols[2].replace(/[^0-9]/g, '') : '',
-            category: (cols[3]?.includes('beverage') || cols[3]?.includes('ドリンク') || cols[3]?.includes('飲')) ? 'beverage' : 'food',
+            menu_name: cols[ni] ?? '',
+            sell_price: cols[pi] ? parseInt(cols[pi].replace(/[^0-9]/g, '')) || null : null,
+            cost_price: '',
+            category: (cat.includes('beverage') || cat.includes('ドリンク') || cat.includes('飲') || cat.includes('drink')) ? 'beverage' : 'food',
           }
-        }).filter(r => r.menu_name)
+        }).filter(r => !!r.menu_name)
         setPendingMenus(rows)
       } else {
         // Excel (.xlsx / .xls)
@@ -282,14 +300,20 @@ export default function FlPage() {
         const wb = XLSX.read(buffer, { type: 'array' })
         const ws = wb.Sheets[wb.SheetNames[0]]
         const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][]
-        const startIdx = data[0]?.[0] && typeof data[0][0] === 'string' && isNaN(Number(data[0][0])) ? 1 : 0
-        const rows: PendingMenu[] = data.slice(startIdx).map((row, i): PendingMenu => ({
-          id: `xl-${i}`,
-          menu_name: String(row[0] ?? '').trim(),
-          sell_price: row[1] ? parseInt(String(row[1]).replace(/[^0-9]/g, '')) || null : null,
-          cost_price: row[2] ? String(row[2]).replace(/[^0-9]/g, '') : '',
-          category: (String(row[3] ?? '').includes('beverage') || String(row[3] ?? '').includes('ドリンク') || String(row[3] ?? '').includes('飲')) ? 'beverage' : 'food',
-        })).filter(r => r.menu_name)
+        const xlHeaders = (data[0] ?? []).map(String)
+        const hasHeader = xlHeaders.length > 0 && isNaN(Number(xlHeaders[0].replace(/[^0-9]/g, '')))
+        const startIdx = hasHeader ? 1 : 0
+        const { name: ni, price: pi, category: ci } = detectCsvColumns(xlHeaders)
+        const rows: PendingMenu[] = data.slice(startIdx).map((row, i): PendingMenu => {
+          const cat = String(row[ci] ?? '')
+          return {
+            id: `xl-${i}`,
+            menu_name: String(row[ni] ?? '').trim(),
+            sell_price: row[pi] ? parseInt(String(row[pi]).replace(/[^0-9]/g, '')) || null : null,
+            cost_price: '',
+            category: (cat.includes('beverage') || cat.includes('ドリンク') || cat.includes('飲') || cat.includes('drink')) ? 'beverage' : 'food',
+          }
+        }).filter(r => !!r.menu_name)
         setPendingMenus(rows)
       }
       setExcelImportOpen(false)
@@ -621,7 +645,7 @@ export default function FlPage() {
               {excelImportOpen && (
                 <div className="mb-4 p-3 bg-[#F1F3F8] rounded-xl space-y-2">
                   <p className="text-xs text-[#6B7280]">Excel（.xlsx）またはCSV（.csv）をアップロードしてください</p>
-                  <p className="text-[10px] text-[#9CA3AF]">列順：メニュー名 / 売価 / 原価（空白でもOK） / カテゴリ（food or beverage）</p>
+                  <p className="text-[10px] text-[#9CA3AF]">Airレジ・Square・汎用CSV（メニュー名/売価/原価/カテゴリ）に対応</p>
                   <input ref={excelInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleFileParse(f); if (excelInputRef.current) excelInputRef.current.value = '' }} />
                   <div className="flex gap-2">
