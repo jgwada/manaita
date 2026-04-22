@@ -21,7 +21,7 @@ const createTools = [
   { icon: Wine, name: '宴会プラン提案', description: '忘年会・新年会などの提案書を瞬時に作成', href: '/tools/banquet', gradient: 'from-orange-400 to-red-500' },
   { icon: BookOpen, name: 'スタッフマニュアル', description: '接客・オープン・クローズ作業のマニュアルを作成', href: '/tools/manual', gradient: 'from-indigo-400 to-blue-500' },
   { icon: BarChart2, name: '日報・売上レポート', description: '今日の状況を入力するだけで日報を自動生成', href: '/tools/report', gradient: 'from-green-400 to-emerald-500' },
-  { icon: Star, name: '満足度アンケートを今すぐ作る', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard', gradient: 'from-emerald-400 to-teal-500' },
+  { icon: Star, name: '満足度アンケート作成', description: '高評価客をGoogleへ誘導・不満はダッシュボードに集約', href: '/dashboard', gradient: 'from-emerald-400 to-teal-500' },
 ]
 
 const consultTools = [
