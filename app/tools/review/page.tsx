@@ -175,6 +175,15 @@ export default function ReviewPage() {
     setMarkingId(null)
   }
 
+  const markReplied = async (id: string, replied: boolean, replyText: string) => {
+    await fetch('/api/reviews', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId: shopProfile?.id, id, replied, replyText }),
+    })
+    setReviews(prev => prev.map(r => r.id === id ? { ...r, replied, reply_text: replyText || null } : r))
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('この口コミを削除しますか？')) return
     const res = await fetch('/api/reviews', {
@@ -407,13 +416,35 @@ export default function ReviewPage() {
               </div>
               <div className="space-y-2">
                 {replied.map(review => (
-                  <div key={review.id} className="bg-white border border-[#E5E9F2] rounded-xl p-4 opacity-60">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Check size={12} className="text-green-600" />
-                      <span className="text-sm">{STAR(review.rating)}</span>
-                      {review.reviewer_name && <span className="text-xs text-[#6B7280]">{review.reviewer_name}</span>}
+                  <div key={review.id} className="bg-white border border-[#E5E9F2] rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Check size={12} className="text-green-600 flex-shrink-0" />
+                          <span className="text-sm">{STAR(review.rating)}</span>
+                          {review.reviewer_name && <span className="text-xs text-[#6B7280]">{review.reviewer_name}</span>}
+                        </div>
+                        <p className="text-sm text-[#111827] line-clamp-2 mb-2">{review.content}</p>
+                        {review.reply_text && (
+                          <div className="bg-green-50 border border-green-100 rounded-lg p-2.5">
+                            <p className="text-[10px] font-bold text-green-700 mb-1">返信文</p>
+                            <p className="text-xs text-[#374151] whitespace-pre-wrap leading-relaxed">{review.reply_text}</p>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(review.reply_text ?? '')}
+                              className="mt-1.5 text-[10px] text-green-600 hover:text-green-800 flex items-center gap-0.5"
+                            >
+                              📋 コピー
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => markReplied(review.id, false, '')}
+                        className="flex-shrink-0 text-[10px] text-[#9CA3AF] hover:text-[#E8320A] border border-[#E5E9F2] rounded-full px-2 py-0.5 transition-colors"
+                      >
+                        未返信に戻す
+                      </button>
                     </div>
-                    <p className="text-sm text-[#111827] line-clamp-2">{review.content}</p>
                   </div>
                 ))}
               </div>

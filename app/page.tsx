@@ -77,6 +77,10 @@ export default function HomePage() {
   const [addingAction, setAddingAction] = useState(false)
   const [nudgeDismissed, setNudgeDismissed] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [guideDismissed, setGuideDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('manaita_guide_dismissed') === '1'
+  })
 
   useEffect(() => {
     if (user && user.role === 'shop' && shopProfile && !shopProfile.name) {
@@ -145,6 +149,16 @@ export default function HomePage() {
         }) ?? null
   ) : null
 
+  // スタートガイド: 新規ユーザー向けチェックリスト
+  const guideSteps = usageLoaded ? [
+    { label: 'FLコストにメニューを登録', done: (toolCounts['fl'] ?? 0) > 0, href: '/tools/fl' },
+    { label: 'AIリサーチで自店を分析', done: !!shopProfile?.researchCache, href: '/tools/research' },
+    { label: 'SNS投稿文を生成する', done: (toolCounts['sns'] ?? 0) > 0, href: '/tools/sns' },
+    { label: 'Google口コミに返信する', done: (toolCounts['review'] ?? 0) > 0, href: '/tools/review' },
+  ] : []
+  const showGuide = usageLoaded && !guideDismissed && shopProfile?.name &&
+    guideSteps.filter(s => s.done).length < guideSteps.length
+
   // よく使う機能：利用回数上位（重複を排除してhref単位で表示）
   const topTools = Object.entries(toolCounts)
     .sort(([, a], [, b]) => b - a)
@@ -177,6 +191,50 @@ export default function HomePage() {
               >
                 設定
               </button>
+            </div>
+          )}
+
+          {/* スタートガイド */}
+          {showGuide && (
+            <div className="mb-4 bg-white border border-[#E5E9F2] rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Rocket size={14} className="text-[#E8320A]" />
+                  <p className="text-sm font-bold text-[#111827]">スタートガイド</p>
+                  <span className="text-[11px] text-[#6B7280] bg-[#F1F3F8] rounded-full px-2 py-0.5">
+                    {guideSteps.filter(s => s.done).length}/{guideSteps.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => { setGuideDismissed(true); localStorage.setItem('manaita_guide_dismissed', '1') }}
+                  className="text-[#C4C9D4] hover:text-[#6B7280]"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {guideSteps.map((step, i) => (
+                  <button
+                    key={i}
+                    onClick={() => !step.done && router.push(step.href)}
+                    disabled={step.done}
+                    className={`w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl transition-colors ${
+                      step.done
+                        ? 'bg-green-50 border border-green-100'
+                        : 'bg-[#F1F3F8] hover:bg-orange-50 hover:border-orange-100 border border-transparent'
+                    }`}
+                  >
+                    {step.done
+                      ? <CheckSquare size={14} className="text-green-500 flex-shrink-0" />
+                      : <Square size={14} className="text-[#C4C9D4] flex-shrink-0" />
+                    }
+                    <span className={`text-xs font-medium ${step.done ? 'text-green-700 line-through' : 'text-[#111827]'}`}>
+                      {step.label}
+                    </span>
+                    {!step.done && <span className="ml-auto text-[10px] text-[#E8320A] font-bold">→</span>}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
