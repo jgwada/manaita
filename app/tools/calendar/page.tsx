@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
-import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as CalendarIcon, Info } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Calendar as CalendarIcon, Info, Share2 } from 'lucide-react'
 
 // ---------- 型定義 ----------
 type CalendarEvent = {
@@ -53,6 +54,7 @@ const SCALE_CONFIG = {
 // ---------- メインページ ----------
 export default function CalendarPage() {
   const { shopProfile } = useAppStore()
+  const router = useRouter()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -514,6 +516,15 @@ export default function CalendarPage() {
                           )}
                           {ev.description && <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">{ev.description}</p>}
                           {ev.impact && <p className="text-xs text-[#E8320A] mt-1.5 font-medium">💡 {ev.impact}</p>}
+                          <button
+                            onClick={() => {
+                              const content = [ev.title, ev.description, ev.impact ? `営業への影響：${ev.impact}` : ''].filter(Boolean).join('\n\n')
+                              router.push(`/tools/sns?content=${encodeURIComponent(content)}`)
+                            }}
+                            className="mt-2 flex items-center gap-1 text-[10px] font-medium text-[#6B7280] border border-[#E5E9F2] bg-white hover:border-[#E8320A] hover:text-[#E8320A] rounded-full px-2 py-0.5 transition-colors"
+                          >
+                            <Share2 size={10} />SNS投稿を作成
+                          </button>
                         </div>
                         <button onClick={() => deleteEvent(ev.id)} className="text-[#C4C9D4] hover:text-red-400 flex-shrink-0 mt-0.5">
                           <X size={14} />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
@@ -39,7 +40,8 @@ function parseIdeas(raw: string): Idea[] {
 
 export default function SnsPage() {
   const { shopProfile } = useAppStore()
-  const [content, setContent] = useState('')
+  const searchParams = useSearchParams()
+  const [content, setContent] = useState(() => searchParams.get('content') ?? '')
   const [tone, setTone] = useState('カジュアル')
   const [loading, setLoading] = useState(false)
   const [rawOutput, setRawOutput] = useState('')
@@ -187,6 +189,12 @@ export default function SnsPage() {
             <label className="block text-sm font-medium text-[#111827] mb-2">
               今日の投稿内容・伝えたいこと <span className="text-[#E8320A]">*</span>
             </label>
+            {searchParams.get('content') && (
+              <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 mb-2">
+                <span>📅</span>
+                <span>集客カレンダーのイベント情報を反映しました。内容を確認・編集してから生成してください。</span>
+              </div>
+            )}
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
