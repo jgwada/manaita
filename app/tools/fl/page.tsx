@@ -47,7 +47,7 @@ function FlGauge({ ratio }: { ratio: number }) {
 function RatioBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="w-36 text-[#6B7280] text-xs flex-shrink-0">{label}</span>
+      <span className="w-24 sm:w-36 text-[#6B7280] text-xs flex-shrink-0">{label}</span>
       <div className="flex-1 h-2 bg-[#F1F3F8] rounded-full overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${Math.min(value, 100)}%`, backgroundColor: color }} />
       </div>
@@ -357,7 +357,7 @@ export default function FlPage() {
     <AuthGuard>
       <div className="min-h-screen bg-[#F1F3F8]">
         <Header />
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-lg sm:max-w-2xl mx-auto px-4 py-6">
           <PageHeader title="FLコスト計算" description="食材費・人件費の比率で経営の健全度を確認" />
 
           {/* 月ナビゲーション */}

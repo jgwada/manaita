@@ -38,11 +38,12 @@ export function useChatThreads(shopId: string | undefined, toolName: 'chat' | 'a
   }, [])
 
   const saveMessage = useCallback(async (threadId: string, role: string, content: object) => {
-    await fetch(`/api/chat-threads/${threadId}/messages`, {
+    const res = await fetch(`/api/chat-threads/${threadId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role, content }),
     })
+    if (!res.ok) throw new Error(`メッセージ保存失敗: ${res.status}`)
   }, [])
 
   const updateTitle = useCallback(async (threadId: string, title: string) => {

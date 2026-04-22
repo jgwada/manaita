@@ -6,15 +6,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ threadI
   const { role, content } = await req.json()
   if (!role || !content) return NextResponse.json({ success: false })
 
-  const { error } = await supabaseAdmin
+  const { error: insertError } = await supabaseAdmin
     .from('chat_messages')
     .insert({ thread_id: threadId, role, content })
 
-  await supabaseAdmin
+  if (insertError) return NextResponse.json({ success: false, error: insertError.message })
+
+  const { error: updateError } = await supabaseAdmin
     .from('chat_threads')
     .update({ updated_at: new Date().toISOString() })
     .eq('id', threadId)
 
-  if (error) return NextResponse.json({ success: false, error: error.message })
+  if (updateError) console.error('thread update error:', updateError)
   return NextResponse.json({ success: true })
 }

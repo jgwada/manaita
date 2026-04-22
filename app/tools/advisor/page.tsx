@@ -201,8 +201,10 @@ export default function AdvisorPage() {
         const members = parseMemberMessages(result)
         setTurns(prev => [...prev, { role: 'team', members }])
         if (threadId) {
-          saveMessage(threadId, 'ceo', { text })
-          saveMessage(threadId, 'team', { members })
+          await Promise.all([
+            saveMessage(threadId, 'ceo', { text }),
+            saveMessage(threadId, 'team', { members }),
+          ]).catch(err => console.error('メッセージ保存失敗:', err))
         }
       }
     } catch (e) {
@@ -234,7 +236,7 @@ export default function AdvisorPage() {
       }
       if (!result.startsWith('ERROR:')) {
         setTurns(prev => [...prev, { role: 'summary', text: result }])
-        if (currentThreadId) saveMessage(currentThreadId, 'summary', { text: result })
+        if (currentThreadId) await saveMessage(currentThreadId, 'summary', { text: result }).catch(err => console.error('要約保存失敗:', err))
       }
     } catch {
       // サイレントフェイル
@@ -369,7 +371,7 @@ export default function AdvisorPage() {
                             value={actionText}
                             onChange={e => setActionText(e.target.value)}
                             placeholder="例：SNS投稿を週3回実施する"
-                            rows={2}
+                            rows={3}
                             className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
                             autoFocus
                           />
@@ -440,7 +442,7 @@ export default function AdvisorPage() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="CEOとして相談内容を入力..."
-                  rows={2}
+                  rows={3}
                   className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
                 />
                 <button

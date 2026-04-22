@@ -211,10 +211,12 @@ export default function ChatPage() {
       } else {
         const members = parseMemberMessages(result)
         setTurns(prev => [...prev, { role: 'team', members }])
-        // DBに保存（fire-and-forget）
+        // DBに保存
         if (threadId) {
-          saveMessage(threadId, 'owner', { text: msg })
-          saveMessage(threadId, 'team', { members })
+          await Promise.all([
+            saveMessage(threadId, 'owner', { text: msg }),
+            saveMessage(threadId, 'team', { members }),
+          ]).catch(err => console.error('メッセージ保存失敗:', err))
         }
       }
     } catch (e) {
@@ -246,7 +248,7 @@ export default function ChatPage() {
       }
       if (!result.startsWith('ERROR:')) {
         setTurns(prev => [...prev, { role: 'summary', text: result }])
-        if (currentThreadId) saveMessage(currentThreadId, 'summary', { text: result })
+        if (currentThreadId) await saveMessage(currentThreadId, 'summary', { text: result }).catch(err => console.error('要約保存失敗:', err))
       }
     } catch {
       // サイレントフェイル
@@ -324,7 +326,7 @@ export default function ChatPage() {
                   <div className="space-y-3">
                     <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4">
                       <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">あなたの専門家チーム</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {MEMBERS.map(m => (
                           <div key={m.key} className={`flex items-center gap-2 border rounded-xl p-2 ${m.color}`}>
                             <span className="text-sm">{m.emoji}</span>
@@ -393,7 +395,7 @@ export default function ChatPage() {
                             value={actionText}
                             onChange={e => setActionText(e.target.value)}
                             placeholder="例：SNS投稿を週3回実施する"
-                            rows={2}
+                            rows={3}
                             className="w-full border border-[#E5E9F2] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
                             autoFocus
                           />
@@ -464,7 +466,7 @@ export default function ChatPage() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="経営の悩みを何でも相談してください..."
-                  rows={2}
+                  rows={3}
                   className="flex-1 resize-none text-sm text-[#111827] placeholder-[#9A8880] focus:outline-none"
                 />
                 <button

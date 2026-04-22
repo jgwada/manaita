@@ -543,8 +543,8 @@ export default function CalendarPage() {
                     <textarea
                       value={editMemo}
                       onChange={e => setEditMemo(e.target.value)}
-                      placeholder={`例：\n・花火大会の日→ビアガーデンメニューを準備\n・SNSで1週間前から告知する\n・スタッフを2名追加確保する`}
-                      rows={4}
+                      placeholder={`例：\n・花火大会の日→ビアガーデンメニューを準備\n・SNSで1週間前から告知する`}
+                      rows={3}
                       autoFocus
                       className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A] resize-none"
                     />

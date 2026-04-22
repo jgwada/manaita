@@ -139,6 +139,7 @@ export default function AbcPage() {
   const [analyzedItems, setAnalyzedItems] = useState<AnalyzedItem[]>([])
   const [advice, setAdvice] = useState<Advice | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeError, setAnalyzeError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const menuMap: Record<string, MenuCostItem> = Object.fromEntries(menuCostItems.map(m => [m.id, m]))
@@ -210,6 +211,7 @@ export default function AbcPage() {
     const items = classifyItems(confirmRows, menuMap)
     if (items.length === 0) return
     setAnalyzedItems(items)
+    setAnalyzeError('')
     setAnalyzing(true)
     setPhase('result')
 
@@ -223,9 +225,13 @@ export default function AbcPage() {
         }),
       })
       const json = await res.json()
-      if (json.success) setAdvice(parseAdvice(json.data))
-    } catch {
-      // アドバイス取得失敗しても分析結果は表示する
+      if (!json.success) {
+        setAnalyzeError(json.error || '分析に失敗しました')
+      } else {
+        setAdvice(parseAdvice(json.data))
+      }
+    } catch (error) {
+      setAnalyzeError(error instanceof Error ? error.message : '分析に失敗しました。もう一度お試しください。')
     } finally {
       setAnalyzing(false)
     }
@@ -422,7 +428,7 @@ export default function AbcPage() {
               <Plus size={14} />行を追加
             </button>
 
-            <button onClick={handleAnalyze} disabled={validRowCount < 2}
+            <button onClick={handleAnalyze} disabled={validRowCount < 2 || analyzing}
               className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               <ChevronRight size={16} />
               {validRowCount}品を分析する
@@ -483,6 +489,12 @@ export default function AbcPage() {
             <div className="bg-white border border-[#E5E9F2] rounded-2xl p-5 text-center">
               <div className="w-8 h-8 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm font-bold text-[#111827]">AIが施策を考えています...</p>
+            </div>
+          )}
+
+          {analyzeError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+              <p className="text-xs text-red-700">{analyzeError}</p>
             </div>
           )}
 
