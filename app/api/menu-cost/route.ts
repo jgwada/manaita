@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
-  if (!shopId) return NextResponse.json({ success: false, error: 'shopId required' })
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
 
   const { data, error } = await supabaseAdmin
     .from('menu_cost_items')
@@ -19,7 +21,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { shopId, menuName, sellPrice, costPrice, category } = await req.json()
+    const body = await req.json()
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+    const { menuName, sellPrice, costPrice, category } = body
     const { data, error } = await supabaseAdmin
       .from('menu_cost_items')
       .insert({ shop_id: shopId, menu_name: menuName, sell_price: sellPrice, cost_price: costPrice, category })

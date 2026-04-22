@@ -1,6 +1,8 @@
 export const maxDuration = 60
 
+import { NextResponse } from 'next/server'
 import { callClaudeChatStream } from '@/lib/claude'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 import { shopContext } from '@/lib/prompts/helpers'
 
@@ -126,11 +128,15 @@ ${manualType === '衛生管理' ? `
 
 export async function POST(req: Request) {
   try {
-    const { messages, shopProfile, manualType } = await req.json() as {
+    const body = await req.json() as {
       messages: { role: 'user' | 'assistant'; content: string }[]
       shopProfile: ShopProfile
       manualType: string
     }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+
+    const { messages, shopProfile, manualType } = body
 
     const systemPrompt = buildSystemPrompt(shopProfile, manualType)
 

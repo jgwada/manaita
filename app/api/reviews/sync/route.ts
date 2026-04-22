@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveShopId } from '@/lib/server-auth'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
-    const shopId = await resolveShopId(body.shopId)
-    if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
     const { data: shop } = await supabaseAdmin
       .from('shops').select('place_id').eq('id', shopId).single()

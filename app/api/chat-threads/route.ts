@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
   const toolName = searchParams.get('toolName')
-  if (!shopId || !toolName) return NextResponse.json({ success: false })
+  if (!toolName) return NextResponse.json({ success: false })
 
   const { data, error } = await supabaseAdmin
     .from('chat_threads')
@@ -20,8 +23,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { shopId, toolName, title } = await req.json()
-  if (!shopId || !toolName) return NextResponse.json({ success: false })
+  const body = await req.json()
+  const auth = await getAuthContext(body.shopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
+  const { toolName, title } = body
+  if (!toolName) return NextResponse.json({ success: false })
 
   const { data, error } = await supabaseAdmin
     .from('chat_threads')

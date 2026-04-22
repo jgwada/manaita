@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
-  if (!shopId) return NextResponse.json({ success: false })
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
 
   const since = new Date()
   since.setDate(since.getDate() - 30)

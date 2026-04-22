@@ -1,12 +1,15 @@
 import { ShopProfile } from '@/types'
-import { shopContext } from './helpers'
+import { shopContext, sanitizeInput } from './helpers'
 
-export const buildSnsPrompt = (shop: ShopProfile, content: string, tone: string) => `
+export const buildSnsPrompt = (shop: ShopProfile, content: string, tone: string) => {
+  const safeContent = sanitizeInput(content, 500)
+  const safeTone = sanitizeInput(tone, 100)
+  return `
 あなたは飲食店SNS運用のプロです。
 ${shopContext(shop)}
 
-今日の投稿内容：${content}
-トーン：${tone}
+今日の投稿内容：${safeContent}
+トーン：${safeTone}
 
 以下の形式のみで出力してください（前置き・後置き一切不要）：
 
@@ -19,3 +22,4 @@ ${shopContext(shop)}
 [Googleビジネス]
 （ハッシュタグなし200字以内）
 `
+}

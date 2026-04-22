@@ -1,12 +1,15 @@
 import { ShopProfile } from '@/types'
-import { shopContext } from './helpers'
+import { shopContext, sanitizeInput } from './helpers'
 
-export const buildManualPrompt = (shop: ShopProfile, type: string, rules: string) => `
+export const buildManualPrompt = (shop: ShopProfile, type: string, rules: string) => {
+  const safeType = sanitizeInput(type, 100)
+  const safeRules = sanitizeInput(rules, 500)
+  return `
 あなたは飲食店の研修担当ベテランです。
 ${shopContext(shop)}
 
-マニュアル種類：${type}
-店独自のルール・特記事項：${rules || 'なし'}
+マニュアル種類：${safeType}
+店独自のルール・特記事項：${safeRules || 'なし'}
 
 以下の形式のみで出力してください（前置き・後置き一切不要）：
 
@@ -16,3 +19,4 @@ ${shopContext(shop)}
 [新人向け説明文]
 （このマニュアルの目的・大事なポイントをわかりやすく120字程度で。新人が読んで安心できるトーンで）
 `
+}

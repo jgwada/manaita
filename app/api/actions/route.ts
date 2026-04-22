@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
-  if (!shopId) return NextResponse.json({ success: false })
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
 
   const { data, error } = await supabaseAdmin
     .from('action_records')
@@ -18,8 +20,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { shopId, content } = await req.json()
-  if (!shopId || !content) return NextResponse.json({ success: false })
+  const body = await req.json()
+  const auth = await getAuthContext(body.shopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
+  const { content } = body
+  if (!content) return NextResponse.json({ success: false })
 
   const { data, error } = await supabaseAdmin
     .from('action_records')

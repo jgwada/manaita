@@ -4,14 +4,20 @@ import { NextResponse } from 'next/server'
 import { callClaudeWithContentStream } from '@/lib/claude'
 import { buildResearchPrompt } from '@/lib/prompts/research'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
   try {
-    const { shopProfile, competitorInfo } = await req.json() as {
+    const body = await req.json() as {
       shopProfile: ShopProfile
       competitorInfo: string
     }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+
+    const { shopProfile, competitorInfo } = body
 
     const prompt = buildResearchPrompt(shopProfile, competitorInfo)
     const encoder = new TextEncoder()
@@ -27,7 +33,7 @@ export async function POST(req: Request) {
         } catch {
           controller.enqueue(encoder.encode('ERROR:分析に失敗しました。もう一度お試しください。'))
         } finally {
-          logUsage(shopProfile.id, 'research', undefined, outputChunks.join(''))
+          logUsage(shopId, 'research', undefined, outputChunks.join(''))
           controller.close()
         }
       }

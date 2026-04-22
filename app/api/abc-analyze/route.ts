@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { callClaude } from '@/lib/claude'
 import { buildAbcAdvicePrompt } from '@/lib/prompts/abc'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 type AnalyzedItem = {
@@ -16,14 +17,18 @@ type AnalyzedItem = {
 
 export async function POST(req: Request) {
   try {
-    const { shopProfile, items } = await req.json() as {
+    const body = await req.json() as {
       shopProfile: ShopProfile
       items: AnalyzedItem[]
     }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
+    const { shopProfile, items } = body
     const prompt = buildAbcAdvicePrompt(shopProfile, items)
     const result = await callClaude(prompt)
-    logUsage(shopProfile.id, 'abc-analyze', `${items.length}品分析`, result)
+    logUsage(shopId, 'abc-analyze', `${items.length}品分析`, result)
 
     return NextResponse.json({ success: true, data: result })
   } catch (error) {

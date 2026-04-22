@@ -5,12 +5,16 @@ import Anthropic from '@anthropic-ai/sdk'
 import { callClaudeWithContentStream } from '@/lib/claude'
 import { buildBanquetGenPrompt } from '@/lib/prompts/banquet'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
     const shopProfile: ShopProfile = JSON.parse(formData.get('shopProfile') as string)
+    const auth = await getAuthContext(shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
     const priceMin = formData.get('priceMin') as string ?? '5000'
     const priceMax = formData.get('priceMax') as string ?? '8000'
     const ingredientMode = (formData.get('ingredientMode') as 'existing' | 'additional') ?? 'additional'
@@ -63,7 +67,7 @@ export async function POST(req: Request) {
         } catch {
           controller.enqueue(encoder.encode('ERROR:AI生成に失敗しました。もう一度お試しください。'))
         } finally {
-          logUsage(shopProfile.id, 'banquet-gen', inputSummary, outputChunks.join(''))
+          logUsage(shopId, 'banquet-gen', inputSummary, outputChunks.join(''))
           controller.close()
         }
       }

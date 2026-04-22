@@ -2,12 +2,17 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { callClaudeStream } from '@/lib/claude'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 import { shopContext } from '@/lib/prompts/helpers'
 
 export async function POST(req: Request) {
   try {
-    const { shopProfile } = await req.json() as { shopProfile: ShopProfile }
+    const body = await req.json() as { shopProfile: ShopProfile }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+
+    const { shopProfile } = body
 
     const prompt = `
 あなたはSNSマーケティングの専門家です。

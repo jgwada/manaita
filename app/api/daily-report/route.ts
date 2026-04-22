@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
   const date = searchParams.get('date')
   const from = searchParams.get('from')
   const to = searchParams.get('to')
-
-  if (!shopId) return NextResponse.json({ success: false, error: 'shopId required' })
 
   // 期間指定（週次・月次サマリー用）
   if (from && to) {
@@ -50,7 +51,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { shopId, date, lunchSales, dinnerSales, lunchCustomers, dinnerCustomers,
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+    const { date, lunchSales, dinnerSales, lunchCustomers, dinnerCustomers,
       weatherCondition, temperature, tempVsAvg, memo, aiReport } = body
 
     const { data, error } = await supabaseAdmin

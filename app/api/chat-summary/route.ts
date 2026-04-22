@@ -2,6 +2,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { callClaudeStream } from '@/lib/claude'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 type MemberMessage = { key: string; text: string }
@@ -12,11 +13,15 @@ type Turn =
 
 export async function POST(req: Request) {
   try {
-    const { turns, shopProfile, context } = await req.json() as {
+    const body = await req.json() as {
       turns: Turn[]
       shopProfile: ShopProfile
       context?: 'general' | 'advisor'
     }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+
+    const { turns, shopProfile, context } = body
 
     const speakerLabel = context === 'advisor' ? 'CEO（オーナー）' : 'オーナー'
     const teamLabel = context === 'advisor' ? '集客戦略チーム' : '経営専門家チーム'

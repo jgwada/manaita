@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveShopId } from '@/lib/server-auth'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const shopId = await resolveShopId(searchParams.get('shopId'))
-    if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const requestShopId = searchParams.get('shopId') ?? undefined
+    const auth = await getAuthContext(requestShopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
     const { data, error } = await supabaseAdmin
       .from('survey_settings')
@@ -26,8 +27,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const shopId = await resolveShopId(body.shopId)
-    if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
     const { category, label } = body
 
@@ -58,8 +60,9 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const body = await req.json()
-    const shopId = await resolveShopId(body.shopId)
-    if (!shopId) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
     const { id } = body
 

@@ -3,6 +3,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { buildAbcExtractPrompt } from '@/lib/prompts/abc'
+import { getAuthContext } from '@/lib/supabase-server'
 
 type ExtractedRow = {
   extracted: string
@@ -14,11 +15,22 @@ type ExtractedRow = {
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
+    const requestShopId = (formData.get('shopId') as string) ?? undefined
+    const auth = await getAuthContext(requestShopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+
     const files = formData.getAll('file') as File[]
     const menuNamesRaw = formData.get('menuNames') as string
     const menuNames: string[] = menuNamesRaw ? JSON.parse(menuNamesRaw) : []
 
     if (files.length === 0) return NextResponse.json({ success: false, error: 'ファイルがありません' })
+    if (files.length > 5) return NextResponse.json({ success: false, error: '一度に送れる写真は5枚までです' })
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ success: false, error: `ファイルサイズは1枚5MB以内にしてください（${file.name}）` })
+      }
+    }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const prompt = buildAbcExtractPrompt(menuNames)

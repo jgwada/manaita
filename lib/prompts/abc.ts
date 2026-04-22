@@ -1,4 +1,5 @@
 import { ShopProfile } from '@/types'
+import { sanitizeInput } from './helpers'
 
 export const buildAbcExtractPrompt = (menuNames: string[]): string => `
 あなたはPOSレジの伝票・売上レポートを読み取るOCRアシスタントです。
@@ -6,7 +7,7 @@ export const buildAbcExtractPrompt = (menuNames: string[]): string => `
 
 【既存メニューリスト】
 以下のメニュー名と照合してください：
-${menuNames.map((n, i) => `${i + 1}. ${n}`).join('\n')}
+${menuNames.map((n, i) => `${i + 1}. ${sanitizeInput(n, 100)}`).join('\n')}
 
 【抽出ルール】
 - 伝票に書かれたメニュー名を読み取り、上記リストの中で最も近いものを matched_name に入れる
@@ -31,10 +32,10 @@ type AnalyzedItem = {
 }
 
 export const buildAbcAdvicePrompt = (shop: ShopProfile, items: AnalyzedItem[]): string => {
-  const star = items.filter(i => i.quadrant === 'star').map(i => i.menuName)
-  const improve = items.filter(i => i.quadrant === 'improve').map(i => i.menuName)
-  const hidden = items.filter(i => i.quadrant === 'hidden').map(i => i.menuName)
-  const review = items.filter(i => i.quadrant === 'review').map(i => i.menuName)
+  const star = items.filter(i => i.quadrant === 'star').map(i => sanitizeInput(i.menuName, 100))
+  const improve = items.filter(i => i.quadrant === 'improve').map(i => sanitizeInput(i.menuName, 100))
+  const hidden = items.filter(i => i.quadrant === 'hidden').map(i => sanitizeInput(i.menuName, 100))
+  const review = items.filter(i => i.quadrant === 'review').map(i => sanitizeInput(i.menuName, 100))
 
   return `
 あなたは飲食店専門のメニュー戦略コンサルタントです。

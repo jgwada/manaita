@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 import { Resend } from 'resend'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -12,27 +10,16 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll() {},
-        },
-      }
-    )
-
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) {
+    const auth = await getAuthContext()
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
     }
+    const { shopId, userId } = auth
 
     const { data: userData } = await supabaseAdmin
       .from('users')
-      .select('*, shops(name)')
-      .eq('id', authUser.id)
+      .select('email, shops(name)')
+      .eq('id', userId)
       .single()
 
     const { type, title, description, imageUrl } = await req.json()
@@ -40,14 +27,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'missing fields' }, { status: 400 })
     }
 
-    const shopName = (userData?.shops as { name: string } | null)?.name ?? null
-    const shopId = userData?.shop_id ?? null
+    const rawShops = userData?.shops
+    const shopName = (Array.isArray(rawShops) ? rawShops[0] : rawShops)?.name ?? null
+    const userEmail = userData?.email ?? null
 
     // DBに保存
     await supabaseAdmin.from('feedback').insert({
       shop_id: shopId,
       shop_name: shopName,
-      user_email: authUser.email,
+      user_email: userEmail,
       type,
       title,
       description,
@@ -75,7 +63,7 @@ export async function POST(req: Request) {
                 </tr>
                 <tr>
                   <td style="padding: 8px; background: #F1F3F8; font-weight: bold; border-radius: 4px;">送信者</td>
-                  <td style="padding: 8px;">${authUser.email}</td>
+                  <td style="padding: 8px;">${userEmail ?? '不明'}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px; background: #F1F3F8; font-weight: bold; border-radius: 4px;">タイトル</td>

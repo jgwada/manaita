@@ -4,14 +4,20 @@ import { NextResponse } from 'next/server'
 import { callClaudeWithWebSearchStream } from '@/lib/claude'
 import { shopContext } from '@/lib/prompts/helpers'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
   try {
-    const { shopProfile, urls } = await req.json() as {
+    const body = await req.json() as {
       shopProfile: ShopProfile
       urls: string[]
     }
+    const auth = await getAuthContext(body.shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+
+    const { shopProfile, urls } = body
 
     const urlSection = urls.filter(Boolean).length > 0
       ? `\n参考URL（必ず参照すること）：\n${urls.filter(Boolean).map(u => `- ${u}`).join('\n')}`
@@ -53,7 +59,7 @@ ${shopContext(shopProfile)}${urlSection}
           console.error('advisor-research stream error:', msg)
           controller.enqueue(encoder.encode(`ERROR:${msg}`))
         } finally {
-          logUsage(shopProfile.id, 'advisor-research', undefined, outputChunks.join(''))
+          logUsage(shopId, 'advisor-research', undefined, outputChunks.join(''))
           controller.close()
         }
       }

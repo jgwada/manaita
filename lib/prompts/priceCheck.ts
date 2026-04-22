@@ -1,27 +1,31 @@
 import { ShopProfile } from '@/types'
+import { sanitizeInput } from './helpers'
 
 export const buildPriceCheckPrompt = (
   shop: ShopProfile,
   menuName: string,
   price: number,
   category: string
-): string => `
+): string => {
+  const safeMenuName = sanitizeInput(menuName, 100)
+  const safeCategory = sanitizeInput(category, 50)
+  return `
 あなたは飲食業界の価格調査・コンサルタントです。
-Web検索を使って「${shop.area}の${shop.industry}」における「${menuName}」の相場価格を調査し、自店の価格が適切かを判定してください。
+Web検索を使って「${shop.area}の${shop.industry}」における「${safeMenuName}」の相場価格を調査し、自店の価格が適切かを判定してください。
 
 【自店情報】
 店名：${shop.name}
 エリア：${shop.area}
 業態：${shop.industry}
 客単価帯：${shop.priceRange}
-カテゴリ：${category || '未指定'}
+カテゴリ：${safeCategory || '未指定'}
 
 【チェックするメニュー】
-メニュー名：${menuName}
+メニュー名：${safeMenuName}
 自店の価格：${price}円
 
 【検索指示】
-- 同じエリア・業態の競合店の「${menuName}」の価格を検索してください
+- 同じエリア・業態の競合店の「${safeMenuName}」の価格を検索してください
 - エリアが特定できない場合は全国の同業態の相場を参考にしてください
 - 価格帯・ランク別（大衆〜高級）の幅を調査してください
 
@@ -36,3 +40,4 @@ Web検索を使って「${shop.area}の${shop.industry}」における「${menuN
 価格設定へのアドバイス（2〜3文。具体的な改善提案や活用方法）
 ===END===
 `
+}

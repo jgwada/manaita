@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
   const year = searchParams.get('year')
   const month = searchParams.get('month')
 
-  if (!shopId || !year || !month) return NextResponse.json({ success: false, error: 'パラメータ不足' })
+  if (!year || !month) return NextResponse.json({ success: false, error: 'パラメータ不足' })
 
   const { data, error } = await supabaseAdmin
     .from('monthly_targets')
@@ -24,7 +27,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { shopId, year, month, targetSales } = await req.json()
+    const body = await req.json()
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+    const { year, month, targetSales } = body
 
     const { data, error } = await supabaseAdmin
       .from('monthly_targets')

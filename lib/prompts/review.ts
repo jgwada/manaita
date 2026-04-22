@@ -1,12 +1,12 @@
 import { ShopProfile } from '@/types'
-import { shopContext } from './helpers'
+import { shopContext, sanitizeInput } from './helpers'
 
 export const buildReviewPrompt = (shop: ShopProfile, review: string, sentiment: string) => `
 あなたは飲食店オーナーです。
 ${shopContext(shop)}
 
 以下のGoogle口コミに返信してください。
-口コミ：${review}
+口コミ：${sanitizeInput(review, 1000)}
 評価傾向：${sentiment}
 
 低評価・クレームの場合は謝罪＋改善意志を示す。

@@ -1,5 +1,5 @@
 import { ShopProfile } from '@/types'
-import { shopContext } from './helpers'
+import { shopContext, sanitizeInput } from './helpers'
 
 export function buildDailyReportPrompt(
   shopProfile: ShopProfile,
@@ -13,6 +13,7 @@ export function buildDailyReportPrompt(
   tempVsAvg: number | null,
   memo: string
 ) {
+  const safeMemo = sanitizeInput(memo, 500)
   const totalSales = (lunchSales ?? 0) + (dinnerSales ?? 0)
   const totalCustomers = (lunchCustomers ?? 0) + (dinnerCustomers ?? 0)
   const avgSpend = totalCustomers > 0 ? Math.round(totalSales / totalCustomers) : null
@@ -39,7 +40,7 @@ ${dinnerLine}
 合計客数：${totalCustomers}名
 ${avgSpend != null ? `客単価：${avgSpend.toLocaleString('ja-JP')}円` : ''}
 ${weatherLine}
-${memo ? `\n【メモ・特記事項】\n${memo}` : ''}
+${safeMemo ? `\n【メモ・特記事項】\n${safeMemo}` : ''}
 
 以下の構成で日報を作成してください（全体400文字以内）：
 

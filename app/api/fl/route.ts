@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const shopId = searchParams.get('shopId')
-
-  if (!shopId) return NextResponse.json({ success: false, error: 'shopId required' })
+  const requestShopId = searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(requestShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  const { shopId } = auth
 
   // 全履歴取得
   if (searchParams.get('history') === 'true') {
@@ -59,7 +60,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { shopId, year, month, revenue, foodCost, beverageCost, laborCost, staffDetails } = await req.json()
+    const body = await req.json()
+    const auth = await getAuthContext(body.shopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
+    const { year, month, revenue, foodCost, beverageCost, laborCost, staffDetails } = body
 
     const totalF = foodCost + beverageCost
     const flRatio = revenue > 0 ? Math.round(((totalF + laborCost) / revenue) * 1000) / 10 : null

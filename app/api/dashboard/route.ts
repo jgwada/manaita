@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveShopId } from '@/lib/server-auth'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const shopId = await resolveShopId(searchParams.get('shopId'))
-
-    if (!shopId) {
-      return NextResponse.json({ success: false, error: '店舗が設定されていません' })
-    }
+    const requestShopId = searchParams.get('shopId') ?? undefined
+    const auth = await getAuthContext(requestShopId)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
     // 店舗情報（public_token含む）
     const { data: shop } = await supabaseAdmin

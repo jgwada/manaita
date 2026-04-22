@@ -25,6 +25,13 @@ export async function POST(req: Request) {
     const formData = await req.formData()
     const files = formData.getAll('file') as File[]
     if (files.length === 0) return NextResponse.json({ success: false, error: 'ファイルがありません' })
+    if (files.length > 5) return NextResponse.json({ success: false, error: '一度に送れる写真は5枚までです' })
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ success: false, error: `ファイルサイズは1枚5MB以内にしてください（${file.name}）` })
+      }
+    }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 

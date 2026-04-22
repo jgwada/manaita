@@ -5,6 +5,7 @@ import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
 import { ExternalLink, Newspaper } from 'lucide-react'
+import { useAppStore } from '@/store'
 
 type Article = {
   id: string
@@ -17,7 +18,28 @@ type Article = {
   fetched_date: string
 }
 
-const CATEGORIES = ['すべて', '外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制', '農業・農家', '農業・政策', '水産・漁業', '食品・食材']
+const CATEGORIES = ['おすすめ', 'すべて', '外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制', '農業・農家', '農業・政策', '水産・漁業', '食品・食材']
+
+// 業態キーワード → 関連カテゴリのマッピング
+const INDUSTRY_CATEGORY_MAP: { keywords: string[]; categories: string[] }[] = [
+  { keywords: ['寿司', '海鮮', '魚', '鮮魚', '刺身', 'すし'], categories: ['水産・漁業', '外食・飲食業界', '食材・フードトレンド', '経営・コスト'] },
+  { keywords: ['焼肉', '牛', '肉', 'ステーキ', 'ホルモン', '和牛'], categories: ['農業・農家', '外食・飲食業界', '食材・フードトレンド', '経営・コスト'] },
+  { keywords: ['焼鳥', '鶏', '鳥', 'とり'], categories: ['農業・農家', '外食・飲食業界', '食材・フードトレンド', '経営・コスト'] },
+  { keywords: ['野菜', 'ベジタリアン', 'ビーガン', '農家', 'オーガニック'], categories: ['農業・農家', '農業・政策', '外食・飲食業界', '食材・フードトレンド'] },
+  { keywords: ['カフェ', 'コーヒー', 'スイーツ', 'ケーキ', 'パン', 'ベーカリー'], categories: ['食材・フードトレンド', '食品・食材', '外食・飲食業界', '経営・コスト'] },
+  { keywords: ['イタリアン', 'フレンチ', 'フランス', '洋食', 'ビストロ', 'レストラン'], categories: ['食品・食材', '外食・飲食業界', '食材・フードトレンド', '経営・コスト'] },
+  { keywords: ['居酒屋', '焼き鳥', '割烹', '和食', '日本料理'], categories: ['外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制'] },
+  { keywords: ['ラーメン', '中華', '餃子', 'チャイニーズ'], categories: ['食材・フードトレンド', '外食・飲食業界', '食品・食材', '経営・コスト'] },
+]
+
+function getRecommendedCategories(industry: string | null | undefined): string[] {
+  if (!industry) return ['外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制']
+  const lower = industry.toLowerCase()
+  for (const { keywords, categories } of INDUSTRY_CATEGORY_MAP) {
+    if (keywords.some(k => lower.includes(k))) return categories
+  }
+  return ['外食・飲食業界', '食材・フードトレンド', '経営・コスト', '補助金・法律・規制']
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   '外食・飲食業界':     'bg-orange-100 text-orange-700',
@@ -43,10 +65,11 @@ function formatDate(dateStr: string) {
 }
 
 export default function NewsPage() {
+  const { shopProfile } = useAppStore()
   const [articles, setArticles] = useState<Article[]>([])
   const [latestDate, setLatestDate] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeCategory, setActiveCategory] = useState('すべて')
+  const [activeCategory, setActiveCategory] = useState('おすすめ')
 
   useEffect(() => {
     fetch('/api/news')
@@ -60,12 +83,15 @@ export default function NewsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const recommendedCats = getRecommendedCategories(shopProfile?.industry)
   const filtered = activeCategory === 'すべて'
     ? articles
+    : activeCategory === 'おすすめ'
+    ? articles.filter(a => recommendedCats.includes(a.category))
     : articles.filter(a => a.category === activeCategory)
 
-  // 表示するカテゴリタブ（実際に記事があるもの + すべて）
-  const activeCats = ['すべて', ...Array.from(new Set(articles.map(a => a.category)))]
+  // 表示するカテゴリタブ（実際に記事があるもの + おすすめ・すべて）
+  const activeCats = ['おすすめ', 'すべて', ...Array.from(new Set(articles.map(a => a.category)))]
 
   return (
     <AuthGuard>

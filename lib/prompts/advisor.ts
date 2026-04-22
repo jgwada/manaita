@@ -1,5 +1,5 @@
 import { ShopProfile } from '@/types'
-import { shopContext } from './helpers'
+import { shopContext, sanitizeInput } from './helpers'
 
 export const buildAdvisorSystemPrompt = (shop: ShopProfile, researchContext?: string): string => `
 あなたは飲食店の集客戦略プロジェクトチームをシミュレートするAIです。
@@ -47,7 +47,7 @@ ${researchContext ? `---
 
 【店舗リサーチ結果（全員必読・完全理解すること）】
 
-${researchContext}
+${sanitizeInput(researchContext, 1000)}
 
 上記のリサーチ結果を100%把握した前提で議論すること。数字・口コミ・SNS状況など具体的な情報を積極的に引用・活用すること。
 
