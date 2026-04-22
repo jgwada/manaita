@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
@@ -38,7 +38,7 @@ function parseIdeas(raw: string): Idea[] {
     })
 }
 
-export default function SnsPage() {
+function SnsPageContent() {
   const { shopProfile } = useAppStore()
   const searchParams = useSearchParams()
   const [content, setContent] = useState(() => searchParams.get('content') ?? '')
@@ -249,5 +249,14 @@ export default function SnsPage() {
         </div>
       </div>
     </AuthGuard>
+  )
+}
+
+
+export default function SnsPage() {
+  return (
+    <Suspense>
+      <SnsPageContent />
+    </Suspense>
   )
 }
