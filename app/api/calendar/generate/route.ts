@@ -1,12 +1,13 @@
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 import { callClaudeWithWebSearch } from '@/lib/claude'
 import { buildCalendarEventsPrompt } from '@/lib/prompts/calendar'
 import { ShopProfile } from '@/types'
 
 const COOLDOWN_DAYS = 7
+const FEATURE_KEY = 'calendar_generate'
 
 type EventRow = {
   date: string
@@ -26,22 +27,27 @@ export async function POST(req: Request) {
       month: number
     }
 
-    const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
-    const monthTo   = `${year}-${String(month).padStart(2, '0')}-31`
+    const auth = await getAuthContext(shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+    const { shopId } = auth
 
-    // 7日間クールダウンチェック
-    const { data: recent } = await supabaseAdmin
-      .from('calendar_events')
-      .select('created_at')
-      .eq('shop_id', shopProfile.id)
-      .gte('date', monthFrom)
-      .lte('date', monthTo)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    const mm = String(month).padStart(2, '0')
+    const lastDay = new Date(year, month, 0).getDate()
+    const monthFrom = `${year}-${mm}-01`
+    const monthTo   = `${year}-${mm}-${String(lastDay).padStart(2, '0')}`
+    const scope = `${year}-${mm}`
+
+    // 7日間クールダウンチェック（専用テーブル）
+    const { data: cd } = await supabaseAdmin
+      .from('feature_cooldowns')
+      .select('last_used_at')
+      .eq('shop_id', shopId)
+      .eq('feature', FEATURE_KEY)
+      .eq('scope', scope)
       .maybeSingle()
 
-    if (recent?.created_at) {
-      const lastAt = new Date(recent.created_at)
+    if (cd?.last_used_at) {
+      const lastAt = new Date(cd.last_used_at)
       const nextAt = new Date(lastAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
       if (new Date() < nextAt) {
         return NextResponse.json({ success: false, cooldown: true, nextAt: nextAt.toISOString() })
@@ -65,14 +71,14 @@ export async function POST(req: Request) {
     await supabaseAdmin
       .from('calendar_events')
       .delete()
-      .eq('shop_id', shopProfile.id)
+      .eq('shop_id', shopId)
       .gte('date', monthFrom)
       .lte('date', monthTo)
 
     const rows = events
       .filter(e => e.date && e.title)
       .map(e => ({
-        shop_id: shopProfile.id,
+        shop_id: shopId,
         date: e.date,
         end_date: e.end_date ?? null,
         title: e.title,
@@ -88,6 +94,11 @@ export async function POST(req: Request) {
       .select()
 
     if (error) throw error
+
+    // クールダウン記録をupsert
+    await supabaseAdmin
+      .from('feature_cooldowns')
+      .upsert({ shop_id: shopId, feature: FEATURE_KEY, scope, last_used_at: new Date().toISOString() }, { onConflict: 'shop_id,feature,scope' })
 
     return NextResponse.json({ success: true, data })
   } catch (e) {

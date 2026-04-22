@@ -96,16 +96,7 @@ export default function CalendarPage() {
     if (evJson.success) {
       const evData: CalendarEvent[] = evJson.data ?? []
       setEventsCache(prev => ({ ...prev, [k]: evData }))
-      // 最新の created_at から nextAt を計算
-      const latestCreatedAt = evData
-        .map(e => e.created_at)
-        .filter(Boolean)
-        .sort()
-        .at(-1)
-      if (latestCreatedAt) {
-        const nextAt = new Date(new Date(latestCreatedAt).getTime() + 7 * 24 * 60 * 60 * 1000)
-        setNextAtCache(prev => ({ ...prev, [k]: nextAt > new Date() ? nextAt.toISOString() : null }))
-      }
+      setNextAtCache(prev => ({ ...prev, [k]: evJson.nextAt ?? null }))
     }
     if (memoJson.success) {
       const map: Record<string, string> = {}

@@ -27,7 +27,24 @@ export async function GET(req: Request) {
     .order('date', { ascending: true })
 
   if (error) return NextResponse.json({ success: false, error: error.message })
-  return NextResponse.json({ success: true, data })
+
+  // クールダウン情報を取得
+  const scope = `${year}-${mm}`
+  const { data: cd } = await supabaseAdmin
+    .from('feature_cooldowns')
+    .select('last_used_at')
+    .eq('shop_id', shopId)
+    .eq('feature', 'calendar_generate')
+    .eq('scope', scope)
+    .maybeSingle()
+
+  let nextAt: string | null = null
+  if (cd?.last_used_at) {
+    const na = new Date(new Date(cd.last_used_at).getTime() + 7 * 24 * 60 * 60 * 1000)
+    if (na > new Date()) nextAt = na.toISOString()
+  }
+
+  return NextResponse.json({ success: true, data, nextAt })
 }
 
 export async function DELETE(req: Request) {
