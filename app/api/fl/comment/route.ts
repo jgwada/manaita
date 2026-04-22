@@ -3,6 +3,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { callClaudeStream } from '@/lib/claude'
 import { buildFlCommentPrompt } from '@/lib/prompts/fl'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -14,6 +15,9 @@ export async function POST(req: Request) {
       flRatio: number; foodRatio: number; beverageRatio: number; laborRatio: number
       prevFlRatio?: number | null
     }
+
+    const auth = await getAuthContext(shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
     const prompt = buildFlCommentPrompt(shopProfile, year, month, revenue, foodCost, beverageCost, laborCost, flRatio, foodRatio, beverageRatio, laborRatio, prevFlRatio)
     const encoder = new TextEncoder()

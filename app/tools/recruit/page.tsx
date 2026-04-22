@@ -467,8 +467,8 @@ export default function RecruitPage() {
                 </div>
 
                 {/* プレビュー（表示用・スケール縮小） */}
-                <div className="overflow-hidden mb-4 rounded-lg border border-[#EDE5DF]" style={{ height: posterSize === 'A4' ? '421px' : '595px', width: posterSize === 'A4' ? '297px' : '421px' }}>
-                  <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: posterSize === 'A4' ? '595px' : '842px' }}>
+                <div className="overflow-hidden mb-4 rounded-lg border border-[#EDE5DF] w-full max-w-[297px] sm:max-w-none" style={{ height: posterSize === 'A4' ? '421px' : '595px', width: posterSize === 'A4' ? undefined : '421px' }}>
+                  <div className="origin-top-left scale-[0.35] sm:scale-50" style={{ width: posterSize === 'A4' ? '595px' : '842px' }}>
                     <RecruitPoster
                       shopName={shopProfile?.name || ''}
                       area={shopProfile?.area || ''}

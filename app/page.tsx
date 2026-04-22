@@ -101,9 +101,11 @@ export default function HomePage() {
         if (d.success) { setToolCounts(d.toolCounts); setLastUsed(d.lastUsed) }
         setUsageLoaded(true)
       })
+      .catch(() => setUsageLoaded(true))
     fetch(`/api/actions?shopId=${shopProfile.id}`)
       .then(r => r.json())
       .then(d => { if (d.success) setActions(d.data) })
+      .catch(() => {})
   }, [shopProfile?.id])
 
   const addAction = async () => {

@@ -149,6 +149,7 @@ export default function AbcPage() {
     fetch(`/api/menu-cost?shopId=${shopProfile.id}`)
       .then(r => r.json())
       .then(d => { if (d.success) setMenuCostItems(d.data) })
+      .catch(() => {})
   }, [shopProfile?.id])
 
   // 写真から抽出

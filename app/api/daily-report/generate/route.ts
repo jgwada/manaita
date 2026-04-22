@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { callClaudeStream } from '@/lib/claude'
 import { buildDailyReportPrompt } from '@/lib/prompts/dailyReport'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -21,6 +22,9 @@ export async function POST(req: Request) {
       tempVsAvg: number | null
       memo: string
     }
+
+    const auth = await getAuthContext(shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
     const prompt = buildDailyReportPrompt(
       shopProfile, date, lunchSales, dinnerSales, lunchCustomers, dinnerCustomers,

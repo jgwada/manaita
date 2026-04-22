@@ -77,12 +77,17 @@ export default function ReviewPage() {
   }
 
   const fetchReviews = async () => {
-    const sid = shopProfile?.id
-    const url = sid ? `/api/reviews?shopId=${sid}` : '/api/reviews'
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data.success) setReviews(data.data)
-    setLoadingList(false)
+    try {
+      const sid = shopProfile?.id
+      const url = sid ? `/api/reviews?shopId=${sid}` : '/api/reviews'
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.success) setReviews(data.data)
+    } catch {
+      // ネットワークエラー時は空のまま
+    } finally {
+      setLoadingList(false)
+    }
   }
 
   const handleAdd = async () => {

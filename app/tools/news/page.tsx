@@ -80,6 +80,7 @@ export default function NewsPage() {
           setLatestDate(res.latestDate)
         }
       })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 

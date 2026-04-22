@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
 export async function GET() {
   try {
+    const auth = await getAuthContext()
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
     // 最新の fetched_date を取得
     const { data: latest } = await supabaseAdmin
       .from('news_articles')

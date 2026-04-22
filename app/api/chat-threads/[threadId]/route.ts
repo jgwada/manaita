@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin, getAuthContext } from '@/lib/supabase-server'
 
-export async function GET(_req: Request, { params }: { params: Promise<{ threadId: string }> }) {
+async function verifyThreadOwnership(threadId: string, shopId: string) {
+  const { data } = await supabaseAdmin.from('chat_threads').select('shop_id').eq('id', threadId).single()
+  return data?.shop_id === shopId
+}
+
+export async function GET(req: Request, { params }: { params: Promise<{ threadId: string }> }) {
   const { threadId } = await params
+  const shopId = new URL(req.url).searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(shopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  if (!(await verifyThreadOwnership(threadId, auth.shopId))) return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 })
 
   const { data, error } = await supabaseAdmin
     .from('chat_messages')
@@ -16,7 +25,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ threadI
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ threadId: string }> }) {
   const { threadId } = await params
-  const { title } = await req.json()
+  const { title, shopId: reqShopId } = await req.json()
+  const auth = await getAuthContext(reqShopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  if (!(await verifyThreadOwnership(threadId, auth.shopId))) return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 })
 
   await supabaseAdmin
     .from('chat_threads')
@@ -26,8 +38,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ thread
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ threadId: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ threadId: string }> }) {
   const { threadId } = await params
+  const shopId = new URL(req.url).searchParams.get('shopId') ?? undefined
+  const auth = await getAuthContext(shopId)
+  if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+  if (!(await verifyThreadOwnership(threadId, auth.shopId))) return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 })
+
   await supabaseAdmin.from('chat_threads').delete().eq('id', threadId)
   return NextResponse.json({ success: true })
 }

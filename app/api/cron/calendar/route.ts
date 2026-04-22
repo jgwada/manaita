@@ -6,7 +6,12 @@ import { callClaudeWithWebSearch } from '@/lib/claude'
 import { buildCalendarEventsPrompt } from '@/lib/prompts/calendar'
 import { ShopProfile } from '@/types'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = req.headers.get('authorization')
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
   const now = new Date()
   const year = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()
   const month = (now.getMonth() + 2 > 12) ? 1 : now.getMonth() + 2 // 翌月

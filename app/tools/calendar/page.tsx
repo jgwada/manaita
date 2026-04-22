@@ -86,28 +86,33 @@ export default function CalendarPage() {
     const k = monthKey(y, m)
     if (!force && loadedRef.current.has(k)) return // キャッシュ済みはスキップ
     setLoading(true)
-    const [evRes, memoRes, wxRes] = await Promise.all([
-      fetch(`/api/calendar/events?shopId=${shopProfile.id}&year=${y}&month=${m}`),
-      fetch(`/api/calendar/memos?shopId=${shopProfile.id}&year=${y}&month=${m}`),
-      fetch(`/api/calendar/weather?area=${encodeURIComponent(shopProfile.area)}&year=${y}&month=${m}`),
-    ])
-    const [evJson, memoJson, wxJson] = await Promise.all([evRes.json(), memoRes.json(), wxRes.json()])
+    try {
+      const [evRes, memoRes, wxRes] = await Promise.all([
+        fetch(`/api/calendar/events?shopId=${shopProfile.id}&year=${y}&month=${m}`),
+        fetch(`/api/calendar/memos?shopId=${shopProfile.id}&year=${y}&month=${m}`),
+        fetch(`/api/calendar/weather?area=${encodeURIComponent(shopProfile.area)}&year=${y}&month=${m}`),
+      ])
+      const [evJson, memoJson, wxJson] = await Promise.all([evRes.json(), memoRes.json(), wxRes.json()])
 
-    if (evJson.success) {
-      const evData: CalendarEvent[] = evJson.data ?? []
-      setEventsCache(prev => ({ ...prev, [k]: evData }))
-      setNextAtCache(prev => ({ ...prev, [k]: evJson.nextAt ?? null }))
+      if (evJson.success) {
+        const evData: CalendarEvent[] = evJson.data ?? []
+        setEventsCache(prev => ({ ...prev, [k]: evData }))
+        setNextAtCache(prev => ({ ...prev, [k]: evJson.nextAt ?? null }))
+      }
+      if (memoJson.success) {
+        const map: Record<string, string> = {}
+        for (const memo of (memoJson.data ?? []) as CalendarMemo[]) map[memo.date] = memo.memo
+        setMemosCache(prev => ({ ...prev, [k]: map }))
+      }
+      if (wxJson.success) {
+        setWeatherCache(prev => ({ ...prev, [k]: wxJson.data ?? {} }))
+      }
+      loadedRef.current.add(k)
+    } catch {
+      // ネットワークエラー時はキャッシュしない
+    } finally {
+      setLoading(false)
     }
-    if (memoJson.success) {
-      const map: Record<string, string> = {}
-      for (const memo of (memoJson.data ?? []) as CalendarMemo[]) map[memo.date] = memo.memo
-      setMemosCache(prev => ({ ...prev, [k]: map }))
-    }
-    if (wxJson.success) {
-      setWeatherCache(prev => ({ ...prev, [k]: wxJson.data ?? {} }))
-    }
-    loadedRef.current.add(k)
-    setLoading(false)
   }, [shopProfile?.id, shopProfile?.area])
 
   useEffect(() => { loadData(year, month) }, [loadData, year, month])

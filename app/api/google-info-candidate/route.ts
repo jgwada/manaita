@@ -1,6 +1,7 @@
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
+import { getAuthContext } from '@/lib/supabase-server'
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
@@ -22,6 +23,9 @@ function normalizePhone(phone: string): string {
 
 export async function POST(req: Request) {
   try {
+    const auth = await getAuthContext()
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
+
     const { phone } = await req.json() as { phone: string }
 
     if (!PLACES_API_KEY) {
