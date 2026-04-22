@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Search, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Plus, Trash2, ListChecks } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Plus, Trash2, ListChecks, Camera, FileText, X } from 'lucide-react'
 
 type Verdict = '高め' | '適正' | '安め'
 
@@ -129,6 +129,9 @@ export default function PriceCheckPage() {
   const [batchMode, setBatchMode] = useState(false)
   const [batchItems, setBatchItems] = useState<BatchItem[]>([])
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 })
+  const [files, setFiles] = useState<File[]>([])
+  const [extracting, setExtracting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const canCheck = menuName.trim() && price && Number(price) > 0 && !!shopProfile
   const canBatchAdd = menuName.trim() && price && Number(price) > 0
@@ -148,6 +151,56 @@ export default function PriceCheckPage() {
 
   const removeBatchItem = (id: string) => {
     setBatchItems(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? [])
+    setFiles(prev => [...prev, ...selected])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeFile = (idx: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleExtractFromFiles = async () => {
+    if (files.length === 0) return
+    setExtracting(true)
+    setError('')
+
+    try {
+      const formData = new FormData()
+      files.forEach(f => formData.append('file', f))
+
+      const res = await fetch('/api/price-extract', { method: 'POST', body: formData })
+      const json = await res.json()
+
+      if (!json.success) {
+        setError(json.error || '読み取りに失敗しました')
+        return
+      }
+
+      const items: BatchItem[] = (json.data as { menu_name: string; sell_price: number | null; category: string }[])
+        .filter(d => d.menu_name && d.sell_price && d.sell_price > 0)
+        .map(d => ({
+          id: Date.now().toString() + Math.random(),
+          menuName: d.menu_name,
+          price: d.sell_price as number,
+          category: d.category || '',
+        }))
+
+      if (items.length === 0) {
+        setError('メニュー情報を読み取れませんでした。写真が鮮明か確認してください。')
+        return
+      }
+
+      setBatchItems(prev => [...prev, ...items])
+      setFiles([])
+    } catch {
+      setError('ファイルの読み取りに失敗しました。もう一度お試しください。')
+    } finally {
+      setExtracting(false)
+    }
   }
 
   const checkSingleItem = async (item: { menuName: string; price: number; category: string }): Promise<CheckResult | null> => {
@@ -323,17 +376,73 @@ export default function PriceCheckPage() {
             </div>
           </div>
 
-          {/* 一括モード：リストに追加ボタン */}
+          {/* 一括モード：リストに追加ボタン + ファイル添付 */}
           {batchMode && (
             <>
               <button
                 onClick={addToBatch}
-                disabled={loading || !canBatchAdd}
+                disabled={loading || extracting || !canBatchAdd}
                 className="w-full bg-white border-2 border-dashed border-[#E8320A] text-[#E8320A] rounded-xl py-3 font-bold text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2"
               >
                 <Plus size={16} />
                 リストに追加
               </button>
+
+              {/* ファイル添付エリア */}
+              <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                <p className="text-sm font-bold text-[#111827] mb-1">メニュー表から自動読み取り</p>
+                <p className="text-xs text-[#6B7280] mb-3">写真・PDF・CSV/Excelを添付するとAIがメニューと価格を抽出します</p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.csv,.xlsx,.xls"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading || extracting}
+                  className="w-full border-2 border-dashed border-[#9CA3AF] rounded-xl py-4 text-[#6B7280] hover:border-[#E8320A] hover:text-[#E8320A] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Camera size={18} />
+                  <span className="text-sm font-bold">写真・ファイルを追加</span>
+                </button>
+
+                {files.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {files.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-[#F1F3F8] rounded-lg px-3 py-2">
+                        <FileText size={14} className="text-[#6B7280] flex-shrink-0" />
+                        <span className="text-xs text-[#111827] flex-1 truncate">{f.name}</span>
+                        <span className="text-xs text-[#9CA3AF] flex-shrink-0">{(f.size / 1024).toFixed(0)}KB</span>
+                        <button onClick={() => removeFile(i)} className="text-[#9CA3AF] hover:text-[#E8320A]">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleExtractFromFiles}
+                      disabled={extracting || loading}
+                      className="w-full bg-[#111827] text-white rounded-xl py-3 font-bold text-sm hover:bg-[#1f2937] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                      {extracting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          読み取り中...
+                        </>
+                      ) : (
+                        <>
+                          <Camera size={14} />
+                          {files.length}件のファイルからメニューを読み取る
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* バッチリスト */}
               {batchItems.length > 0 && (
