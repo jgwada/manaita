@@ -145,7 +145,8 @@ export default function AdvisorPage() {
 
   const buildMessages = (userText: string) => {
     const msgs: { role: 'user' | 'assistant'; content: string }[] = []
-    turns.forEach(t => {
+    const recentTurns = turns.slice(-10)
+    recentTurns.forEach(t => {
       if (t.role === 'ceo') {
         msgs.push({ role: 'user', content: t.text })
       } else if (t.role === 'team') {
