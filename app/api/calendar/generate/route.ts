@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
     const { data, error } = await supabaseAdmin
       .from('calendar_events')
-      .insert(rows)
+      .upsert(rows, { onConflict: 'shop_id,date,title' })
       .select()
 
     if (error) throw error

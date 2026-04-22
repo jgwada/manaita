@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import AuthGuard from '@/components/layout/AuthGuard'
 import Header from '@/components/layout/Header'
 import PageHeader from '@/components/ui/PageHeader'
-import { Search, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Plus, Trash2, ListChecks } from 'lucide-react'
 
 type Verdict = '高め' | '適正' | '安め'
 
@@ -18,6 +18,13 @@ type CheckResult = {
   range: string
   reason: string
   advice: string
+}
+
+type BatchItem = {
+  id: string
+  menuName: string
+  price: number
+  category: string
 }
 
 const CATEGORIES = ['料理', 'ドリンク', 'デザート', 'コース', 'その他']
@@ -119,8 +126,68 @@ export default function PriceCheckPage() {
   const [streamText, setStreamText] = useState('')
   const [error, setError] = useState('')
   const [results, setResults] = useState<CheckResult[]>([])
+  const [batchMode, setBatchMode] = useState(false)
+  const [batchItems, setBatchItems] = useState<BatchItem[]>([])
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 })
 
   const canCheck = menuName.trim() && price && Number(price) > 0 && !!shopProfile
+  const canBatchAdd = menuName.trim() && price && Number(price) > 0
+
+  const addToBatch = () => {
+    if (!canBatchAdd) return
+    setBatchItems(prev => [...prev, {
+      id: Date.now().toString(),
+      menuName: menuName.trim(),
+      price: Number(price),
+      category,
+    }])
+    setMenuName('')
+    setPrice('')
+    setCategory('')
+  }
+
+  const removeBatchItem = (id: string) => {
+    setBatchItems(prev => prev.filter(item => item.id !== id))
+  }
+
+  const checkSingleItem = async (item: { menuName: string; price: number; category: string }): Promise<CheckResult | null> => {
+    if (!shopProfile) return null
+
+    const response = await fetch('/api/price-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopProfile, menuName: item.menuName, price: item.price, category: item.category }),
+    })
+
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!response.ok || contentType.includes('application/json')) {
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data.error ?? `エラーが発生しました (${response.status})`)
+    }
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let raw = ''
+    while (true) {
+      const { done, value } = await reader!.read()
+      if (done) break
+      raw += decoder.decode(value)
+      setStreamText(raw)
+    }
+
+    if (raw.startsWith('ERROR:')) return null
+
+    const parsed = parseResult(raw)
+    if (!parsed) return null
+
+    return {
+      id: Date.now().toString() + Math.random(),
+      menuName: item.menuName,
+      price: item.price,
+      category: item.category,
+      ...parsed,
+    }
+  }
 
   const handleCheck = async () => {
     if (!canCheck || !shopProfile) return
@@ -129,52 +196,55 @@ export default function PriceCheckPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/price-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopProfile, menuName: menuName.trim(), price: Number(price), category }),
-      })
-
-      const contentType = response.headers.get('content-type') ?? ''
-      if (!response.ok || contentType.includes('application/json')) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? `エラーが発生しました (${response.status})`)
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let raw = ''
-      while (true) {
-        const { done, value } = await reader!.read()
-        if (done) break
-        raw += decoder.decode(value)
-        setStreamText(raw)
-      }
-
-      if (raw.startsWith('ERROR:')) {
-        setError(raw.replace('ERROR:', '').trim())
+      const result = await checkSingleItem({ menuName: menuName.trim(), price: Number(price), category })
+      if (result) {
+        setResults(prev => [result, ...prev])
+        setMenuName('')
+        setPrice('')
+        setCategory('')
       } else {
-        const parsed = parseResult(raw)
-        if (parsed) {
-          setResults(prev => [{
-            id: Date.now().toString(),
-            menuName: menuName.trim(),
-            price: Number(price),
-            category,
-            ...parsed,
-          }, ...prev])
-          setMenuName('')
-          setPrice('')
-          setCategory('')
-        } else {
-          setError('結果の解析に失敗しました。もう一度お試しください。')
-        }
+        setError('結果の解析に失敗しました。もう一度お試しください。')
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '調査に失敗しました。もう一度お試しください。')
     } finally {
       setLoading(false)
       setStreamText('')
+    }
+  }
+
+  const handleBatchCheck = async () => {
+    if (batchItems.length === 0 || !shopProfile) return
+    setError('')
+    setStreamText('')
+    setLoading(true)
+    setBatchProgress({ current: 0, total: batchItems.length })
+
+    const newResults: CheckResult[] = []
+    let failCount = 0
+
+    for (let i = 0; i < batchItems.length; i++) {
+      setBatchProgress({ current: i + 1, total: batchItems.length })
+      try {
+        const result = await checkSingleItem(batchItems[i])
+        if (result) {
+          newResults.push(result)
+          setResults(prev => [result, ...prev])
+        } else {
+          failCount++
+        }
+      } catch {
+        failCount++
+      }
+      setStreamText('')
+    }
+
+    setBatchItems([])
+    setBatchProgress({ current: 0, total: 0 })
+    setLoading(false)
+
+    if (failCount > 0) {
+      setError(`${batchItems.length}件中${failCount}件の調査に失敗しました`)
     }
   }
 
@@ -189,9 +259,29 @@ export default function PriceCheckPage() {
             backHref="/"
           />
 
+          {/* モード切替 */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setBatchMode(false)}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${!batchMode ? 'bg-[#E8320A] text-white' : 'bg-white text-[#6B7280] border border-[#E5E9F2]'}`}
+            >
+              <Search size={14} className="inline mr-1.5 -mt-0.5" />
+              1件ずつチェック
+            </button>
+            <button
+              onClick={() => setBatchMode(true)}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${batchMode ? 'bg-[#E8320A] text-white' : 'bg-white text-[#6B7280] border border-[#E5E9F2]'}`}
+            >
+              <ListChecks size={14} className="inline mr-1.5 -mt-0.5" />
+              一括チェック
+            </button>
+          </div>
+
           {/* 入力フォーム */}
           <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold text-[#111827] mb-3">チェックするメニュー</p>
+            <p className="text-sm font-bold text-[#111827] mb-3">
+              {batchMode ? 'メニューを追加' : 'チェックするメニュー'}
+            </p>
 
             <div className="space-y-3">
               <div>
@@ -200,6 +290,7 @@ export default function PriceCheckPage() {
                   type="text"
                   value={menuName}
                   onChange={e => setMenuName(e.target.value)}
+                  onKeyDown={e => { if (batchMode && e.key === 'Enter' && canBatchAdd) addToBatch() }}
                   placeholder="例：生ビール、ランチセット、刺身盛り合わせ"
                   className="w-full border border-[#E5E9F2] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8320A]"
                 />
@@ -232,20 +323,78 @@ export default function PriceCheckPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleCheck}
-            disabled={loading || !canCheck}
-            className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6 flex items-center justify-center gap-2"
-          >
-            <Search size={16} />
-            {loading ? 'Web検索で相場を調査中...' : '相場をチェックする'}
-          </button>
+          {/* 一括モード：リストに追加ボタン */}
+          {batchMode && (
+            <>
+              <button
+                onClick={addToBatch}
+                disabled={loading || !canBatchAdd}
+                className="w-full bg-white border-2 border-dashed border-[#E8320A] text-[#E8320A] rounded-xl py-3 font-bold text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                リストに追加
+              </button>
+
+              {/* バッチリスト */}
+              {batchItems.length > 0 && (
+                <div className="bg-white border border-[#E5E9F2] rounded-2xl p-4 mb-4">
+                  <p className="text-xs font-bold text-[#6B7280] mb-3">
+                    チェックリスト — {batchItems.length}件
+                  </p>
+                  <div className="space-y-2">
+                    {batchItems.map(item => (
+                      <div key={item.id} className="flex items-center justify-between bg-[#F1F3F8] rounded-xl px-3 py-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#111827] truncate">{item.menuName}</p>
+                          <p className="text-xs text-[#6B7280]">{item.price.toLocaleString()}円{item.category ? ` · ${item.category}` : ''}</p>
+                        </div>
+                        <button
+                          onClick={() => removeBatchItem(item.id)}
+                          disabled={loading}
+                          className="text-[#9CA3AF] hover:text-[#E8320A] transition-colors ml-2 flex-shrink-0 disabled:opacity-40"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleBatchCheck}
+                disabled={loading || batchItems.length === 0 || !shopProfile}
+                className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6 flex items-center justify-center gap-2"
+              >
+                <ListChecks size={16} />
+                {loading
+                  ? `調査中... (${batchProgress.current}/${batchProgress.total})`
+                  : `${batchItems.length}件をまとめてチェック`}
+              </button>
+            </>
+          )}
+
+          {/* 単品モード：チェックボタン */}
+          {!batchMode && (
+            <button
+              onClick={handleCheck}
+              disabled={loading || !canCheck}
+              className="w-full bg-[#E8320A] text-white rounded-xl py-4 font-bold text-base hover:bg-[#c92b09] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6 flex items-center justify-center gap-2"
+            >
+              <Search size={16} />
+              {loading ? 'Web検索で相場を調査中...' : '相場をチェックする'}
+            </button>
+          )}
 
           {/* ストリーミング中 */}
           {loading && (
             <div className="bg-white border border-[#E5E9F2] rounded-2xl p-6 text-center mb-6">
               <div className="w-10 h-10 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-bold text-[#111827] text-sm">Web検索で相場を調査中...</p>
+              <p className="font-bold text-[#111827] text-sm">
+                {batchMode
+                  ? `Web検索で相場を調査中... (${batchProgress.current}/${batchProgress.total})`
+                  : 'Web検索で相場を調査中...'}
+              </p>
               <p className="text-xs text-[#6B7280] mt-1">
                 {shopProfile?.area}の{shopProfile?.industry}の相場を確認しています
               </p>
