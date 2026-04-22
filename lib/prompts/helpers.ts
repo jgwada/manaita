@@ -1,12 +1,12 @@
 import { ShopProfile } from '@/types'
 
 export const shopContext = (shop: ShopProfile) => `
-店名：${shop.name}
-地域：${shop.area}
-業態：${shop.industry}
-客単価：${shop.priceRange}
-席数：${shop.seats}席
-${shop.researchCache ? `\n【店舗リサーチ情報】\n${shop.researchCache}` : ''}
+店名：${sanitizeInput(shop.name ?? '', 100)}
+地域：${sanitizeInput(shop.area ?? '', 100)}
+業態：${sanitizeInput(shop.industry ?? '', 100)}
+客単価：${sanitizeInput(shop.priceRange ?? '', 50)}
+席数：${shop.seats ?? 0}席
+${shop.researchCache ? `\n【店舗リサーチ情報】\n${sanitizeInput(shop.researchCache, 2000)}` : ''}
 `
 
 /**

@@ -8,6 +8,7 @@ import { buildRecruitPrompt } from '@/lib/prompts/recruit'
 import { buildBanquetPrompt } from '@/lib/prompts/banquet'
 import { buildManualPrompt } from '@/lib/prompts/manual'
 import { logUsage } from '@/lib/log'
+import { getAuthContext } from '@/lib/supabase-server'
 import { ShopProfile } from '@/types'
 
 export async function POST(req: Request) {
@@ -18,6 +19,9 @@ export async function POST(req: Request) {
       inputs: Record<string, string>
       tone?: string
     }
+
+    const auth = await getAuthContext(shopProfile?.id)
+    if (!auth) return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
     let prompt = ''
     let inputSummary = ''
