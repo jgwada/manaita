@@ -395,6 +395,84 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+
+          {/* フィードバック */}
+          <h2 className="text-lg font-bold text-[#111827] mt-8 mb-3 flex items-center gap-2">
+            <MessageSquarePlus size={18} />
+            ユーザーフィードバック
+          </h2>
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={fetchFeedbacks}
+              className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111827] hover:text-[#111827] transition-colors"
+            >
+              <RefreshCw size={11} />更新
+            </button>
+          </div>
+          {feedbacksLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : feedbacks.length === 0 ? (
+            <p className="text-[#6B7280] text-sm text-center py-4">フィードバックはありません</p>
+          ) : (
+            <div className="space-y-2">
+              {feedbacks.map((fb) => {
+                const isExpanded = expandedFeedbackId === fb.id
+                const typeLabel = fb.type === 'bug' ? '🐛 バグ' : fb.type === 'feature' ? '✨ 機能リクエスト' : '💬 その他'
+                const statusColor = fb.status === 'new' ? 'bg-red-50 text-red-600 border-red-200' : fb.status === 'in_progress' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : 'bg-green-50 text-green-600 border-green-200'
+                const statusLabel = fb.status === 'new' ? '新規' : fb.status === 'in_progress' ? '対応中' : '解決済み'
+                return (
+                  <div key={fb.id} className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
+                    <div
+                      className="px-4 py-3 flex items-start justify-between gap-3 cursor-pointer hover:bg-[#FAFAFA]"
+                      onClick={() => setExpandedFeedbackId(isExpanded ? null : fb.id)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[11px] text-[#6B7280]">{typeLabel}</span>
+                          <span className={`text-[11px] border rounded-full px-2 py-0.5 font-medium ${statusColor}`}>{statusLabel}</span>
+                        </div>
+                        <p className="font-medium text-[#111827] text-sm truncate">{fb.title}</p>
+                        <p className="text-xs text-[#6B7280] mt-0.5">
+                          {fb.shop_name ?? '店舗不明'} · {fb.user_email} · {new Date(fb.created_at).toLocaleDateString('ja-JP')}
+                        </p>
+                      </div>
+                      <span className="text-[#E8320A] text-[10px] select-none mt-1">{isExpanded ? '▲' : '▼'}</span>
+                    </div>
+                    {isExpanded && (
+                      <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">
+                        <p className="text-xs text-[#374151] whitespace-pre-wrap mb-3">{fb.description}</p>
+                        {fb.image_url && (
+                          <a href={fb.image_url} target="_blank" rel="noopener noreferrer" className="block mb-3">
+                            <img src={fb.image_url} alt="screenshot" className="max-h-48 rounded-xl border border-[#E5E9F2] object-contain hover:opacity-80 transition-opacity" />
+                          </a>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#6B7280]">ステータス：</span>
+                          {(['new', 'in_progress', 'resolved'] as const).map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => handleFeedbackStatus(fb.id, s)}
+                              disabled={updatingStatusId === fb.id}
+                              className={`text-xs border rounded-full px-2.5 py-0.5 transition-colors disabled:opacity-50 ${
+                                fb.status === s
+                                  ? s === 'new' ? 'bg-red-50 text-red-600 border-red-300 font-bold' : s === 'in_progress' ? 'bg-yellow-50 text-yellow-600 border-yellow-300 font-bold' : 'bg-green-50 text-green-600 border-green-300 font-bold'
+                                  : 'text-[#9CA3AF] border-[#E5E9F2] hover:border-[#111827] hover:text-[#111827]'
+                              }`}
+                            >
+                              {s === 'new' ? '新規' : s === 'in_progress' ? '対応中' : '解決済み'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {/* ユーザー一覧 */}
           <h2 className="text-lg font-bold text-[#111827] mt-8 mb-3 flex items-center gap-2">
             <Users size={18} />
@@ -522,83 +600,6 @@ export default function AdminPage() {
                   })}
                 </tbody>
               </table>
-            </div>
-          )}
-
-          {/* フィードバック */}
-          <h2 className="text-lg font-bold text-[#111827] mt-8 mb-3 flex items-center gap-2">
-            <MessageSquarePlus size={18} />
-            ユーザーフィードバック
-          </h2>
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={fetchFeedbacks}
-              className="flex items-center gap-1 text-xs text-[#6B7280] border border-[#E5E9F2] rounded-lg px-2.5 py-1.5 hover:border-[#111827] hover:text-[#111827] transition-colors"
-            >
-              <RefreshCw size={11} />更新
-            </button>
-          </div>
-          {feedbacksLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="w-5 h-5 border-4 border-[#E8320A] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : feedbacks.length === 0 ? (
-            <p className="text-[#6B7280] text-sm text-center py-4">フィードバックはありません</p>
-          ) : (
-            <div className="space-y-2">
-              {feedbacks.map((fb) => {
-                const isExpanded = expandedFeedbackId === fb.id
-                const typeLabel = fb.type === 'bug' ? '🐛 バグ' : fb.type === 'feature' ? '✨ 機能リクエスト' : '💬 その他'
-                const statusColor = fb.status === 'new' ? 'bg-red-50 text-red-600 border-red-200' : fb.status === 'in_progress' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : 'bg-green-50 text-green-600 border-green-200'
-                const statusLabel = fb.status === 'new' ? '新規' : fb.status === 'in_progress' ? '対応中' : '解決済み'
-                return (
-                  <div key={fb.id} className="bg-white border border-[#E5E9F2] rounded-xl overflow-hidden">
-                    <div
-                      className="px-4 py-3 flex items-start justify-between gap-3 cursor-pointer hover:bg-[#FAFAFA]"
-                      onClick={() => setExpandedFeedbackId(isExpanded ? null : fb.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-[11px] text-[#6B7280]">{typeLabel}</span>
-                          <span className={`text-[11px] border rounded-full px-2 py-0.5 font-medium ${statusColor}`}>{statusLabel}</span>
-                        </div>
-                        <p className="font-medium text-[#111827] text-sm truncate">{fb.title}</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">
-                          {fb.shop_name ?? '店舗不明'} · {fb.user_email} · {new Date(fb.created_at).toLocaleDateString('ja-JP')}
-                        </p>
-                      </div>
-                      <span className="text-[#E8320A] text-[10px] select-none mt-1">{isExpanded ? '▲' : '▼'}</span>
-                    </div>
-                    {isExpanded && (
-                      <div className="border-t border-[#E5E9F2] px-4 py-3 bg-[#F1F3F8]">
-                        <p className="text-xs text-[#374151] whitespace-pre-wrap mb-3">{fb.description}</p>
-                        {fb.image_url && (
-                          <a href={fb.image_url} target="_blank" rel="noopener noreferrer" className="block mb-3">
-                            <img src={fb.image_url} alt="screenshot" className="max-h-48 rounded-xl border border-[#E5E9F2] object-contain hover:opacity-80 transition-opacity" />
-                          </a>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#6B7280]">ステータス：</span>
-                          {(['new', 'in_progress', 'resolved'] as const).map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => handleFeedbackStatus(fb.id, s)}
-                              disabled={updatingStatusId === fb.id}
-                              className={`text-xs border rounded-full px-2.5 py-0.5 transition-colors disabled:opacity-50 ${
-                                fb.status === s
-                                  ? s === 'new' ? 'bg-red-50 text-red-600 border-red-300 font-bold' : s === 'in_progress' ? 'bg-yellow-50 text-yellow-600 border-yellow-300 font-bold' : 'bg-green-50 text-green-600 border-green-300 font-bold'
-                                  : 'text-[#9CA3AF] border-[#E5E9F2] hover:border-[#111827] hover:text-[#111827]'
-                              }`}
-                            >
-                              {s === 'new' ? '新規' : s === 'in_progress' ? '対応中' : '解決済み'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
             </div>
           )}
         </div>
