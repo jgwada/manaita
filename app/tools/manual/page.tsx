@@ -168,7 +168,7 @@ function ManualBlock({ text, shopName, manualType }: { text: string; shopName: s
           <div style={{ padding: '28px 36px 40px' }}><ManualLines lines={lines} forPdf /></div>
           <div style={{ borderTop: '1px solid #EDE5DF', padding: '12px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '10px', color: '#9A8880' }}>{shopName}　{manualType}マニュアル</span>
-            <span style={{ fontSize: '10px', color: '#9A8880' }}>Powered by Manaita</span>
+            <span style={{ fontSize: '10px', color: '#9A8880' }}>Powered by I love 飲食店</span>
           </div>
         </div>
       </div>

@@ -202,7 +202,7 @@ export default function CalendarPage() {
   const exportToIcs = () => {
     const lines: string[] = [
       'BEGIN:VCALENDAR', 'VERSION:2.0',
-      'PRODID:-//Manaita//Manaita Calendar//JA',
+      'PRODID:-//ILoveRestaurant//I love Restaurant Calendar//JA',
       'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     ]
     for (const ev of events) {
@@ -228,7 +228,7 @@ export default function CalendarPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `manaita-${key}.ics`
+    a.download = `ilove-inshokuten-${key}.ics`
     a.click()
     URL.revokeObjectURL(url)
   }

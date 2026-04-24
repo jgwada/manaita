@@ -48,9 +48,9 @@ export async function POST(req: Request) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
         await resend.emails.send({
-          from: 'Manaita <onboarding@resend.dev>',
+          from: 'I love 飲食店 <onboarding@resend.dev>',
           to: process.env.DEVELOPER_EMAIL,
-          subject: `[Manaita] ${TYPE_LABELS[type] ?? type}：${title}`,
+          subject: `[I love 飲食店] ${TYPE_LABELS[type] ?? type}：${title}`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #111827; border-bottom: 2px solid #E8320A; padding-bottom: 8px;">

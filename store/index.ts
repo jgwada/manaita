@@ -29,7 +29,7 @@ export const useAppStore = create<AppState>()(
       setIsLoading: (loading) => set({ isLoading: loading }),
     }),
     {
-      name: 'manaita-shop-profile',
+      name: 'i-love-restaurant-shop-profile',
       storage: createJSONStorage(() => sessionStorage),
       // shopProfileのみ永続化（userはセキュリティ上保存しない）
       partialize: (state) => ({ shopProfile: state.shopProfile }),
