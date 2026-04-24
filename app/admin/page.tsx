@@ -8,7 +8,7 @@ import AuthGuard from '@/components/layout/AuthGuard'
 import { Store, Users, Plus, RefreshCw, CheckCircle, ChevronDown, ChevronUp, Mail, LogIn, Pencil, Save, X, Activity, MessageSquarePlus } from 'lucide-react'
 
 type Shop = { id: string; name: string; area: string; industry: string; research_cache: string | null; research_prev_cache: string | null; research_updated_at: string | null }
-type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; shops: { name: string } | null }
+type User = { id: string; email: string; role: string; is_active: boolean; created_at: string; last_sign_in_at: string | null; shops: { name: string } | null }
 type LogEntry = { id: string; shop_id: string; tool_name: string; input_summary: string | null; output_summary: string | null; created_at: string; shops: { name: string } | null }
 type Feedback = { id: string; shop_name: string | null; user_email: string | null; type: string; title: string; description: string; status: string; image_url: string | null; created_at: string }
 
@@ -411,6 +411,7 @@ export default function AdminPage() {
                     <p className="text-xs text-[#6B7280] mt-0.5">
                       {u.role === 'admin' ? '管理者' : `店舗：${u.shops?.name ?? '未紐づけ'}`}
                       　登録：{new Date(u.created_at).toLocaleDateString('ja-JP')}
+                      　最終ログイン：{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '未ログイン'}
                     </p>
                   </div>
                   <button

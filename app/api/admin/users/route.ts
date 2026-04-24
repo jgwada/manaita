@@ -10,7 +10,18 @@ export async function GET() {
 
     if (error) throw new Error(error.message)
 
-    return NextResponse.json({ success: true, data })
+    // auth.usersから最終ログイン日時を取得
+    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+    const authMap = new Map(
+      (authData?.users ?? []).map(u => [u.id, u.last_sign_in_at])
+    )
+
+    const enriched = (data ?? []).map(u => ({
+      ...u,
+      last_sign_in_at: authMap.get(u.id) ?? null,
+    }))
+
+    return NextResponse.json({ success: true, data: enriched })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     return NextResponse.json({ success: false, error: msg })
