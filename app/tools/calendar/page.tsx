@@ -39,6 +39,10 @@ function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function toLocalDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function monthKey(year: number, month: number) {
   return `${year}-${String(month).padStart(2, '0')}`
 }
@@ -208,7 +212,8 @@ export default function CalendarPage() {
     for (const ev of events) {
       const d = ev.date.replace(/-/g, '')
       const endBase = ev.end_date ?? ev.date
-      const nd = new Date(new Date(endBase).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      const nextDay = new Date(new Date(endBase + 'T00:00:00').getTime() + 86400000)
+      const nd = toLocalDateStr(nextDay).replace(/-/g, '')
       lines.push('BEGIN:VEVENT', `UID:manaita-ev-${ev.id}@manaita`,
         `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nd}`, `SUMMARY:${ev.title}`)
       if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`)
@@ -217,7 +222,8 @@ export default function CalendarPage() {
     for (const [date, memo] of Object.entries(memos)) {
       if (!memo) continue
       const d = date.replace(/-/g, '')
-      const nd = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, '')
+      const memoNextDay = new Date(new Date(date + 'T00:00:00').getTime() + 86400000)
+      const nd = toLocalDateStr(memoNextDay).replace(/-/g, '')
       lines.push('BEGIN:VEVENT', `UID:manaita-memo-${date}@manaita`,
         `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nd}`,
         `SUMMARY:📝 ${memo.split('\n')[0].slice(0, 40)}`,
@@ -245,7 +251,7 @@ export default function CalendarPage() {
     const end = ev.end_date ? new Date(ev.end_date + 'T00:00:00') : start
     const cur = new Date(start)
     while (cur <= end) {
-      const ds = cur.toISOString().slice(0, 10)
+      const ds = toLocalDateStr(cur)
       if (!eventsByDate[ds]) eventsByDate[ds] = []
       eventsByDate[ds].push(ev)
       cur.setDate(cur.getDate() + 1)
@@ -253,7 +259,7 @@ export default function CalendarPage() {
   }
 
   const dates = getDates(year, month)
-  const today = now.toISOString().slice(0, 10)
+  const today = toLocalDateStr(now)
   const selectedEvents = selectedDate ? (eventsByDate[selectedDate] ?? []) : []
   const selectedWeather = selectedDate ? weather[selectedDate] : undefined
 
@@ -478,7 +484,7 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-[#111827]">
                     {parseInt(selectedDate.slice(5, 7))}月{parseInt(selectedDate.slice(8, 10))}日
-                    （{DOW[new Date(selectedDate).getDay()]}）
+                    （{DOW[new Date(selectedDate + 'T00:00:00').getDay()]}）
                   </p>
                   {selectedWeather && (
                     <span className="text-sm text-[#6B7280]">
