@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       .eq('scope', scope)
       .maybeSingle()
 
-    if (cd?.last_used_at) {
+    if (cd?.last_used_at && auth.role !== 'admin') {
       const lastAt = new Date(cd.last_used_at)
       const nextAt = new Date(lastAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
       if (new Date() < nextAt) {
