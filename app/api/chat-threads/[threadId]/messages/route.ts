@@ -11,7 +11,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ threadI
 
   // スレッドが自分の店舗のものか検証
   const { data: thread } = await supabaseAdmin.from('chat_threads').select('shop_id').eq('id', threadId).single()
-  if (!thread || thread.shop_id !== auth.shopId) return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 })
+  if (!thread || (auth.role !== 'admin' && thread.shop_id !== auth.shopId)) return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 })
 
   const { error: insertError } = await supabaseAdmin
     .from('chat_messages')

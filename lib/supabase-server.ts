@@ -10,7 +10,7 @@ export const supabaseAdmin = createClient(
 
 type AuthContext = {
   userId: string
-  shopId: string
+  shopId: string | null
   role: 'admin' | 'shop'
 }
 
@@ -46,8 +46,9 @@ export async function getAuthContext(requestShopId?: string): Promise<AuthContex
       ? (requestShopId ?? userData.shop_id)
       : userData.shop_id
 
-    if (!shopId) return null
-    return { userId: authUser.id, shopId, role }
+    // adminはshopId無しでもOK（全ショップ横断アクセス可能）
+    if (!shopId && role !== 'admin') return null
+    return { userId: authUser.id, shopId: shopId ?? null, role }
   } catch {
     return null
   }
