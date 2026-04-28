@@ -1,7 +1,7 @@
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { callClaudeWithContentStream } from '@/lib/claude'
+import { callClaudeWithWebSearchStream } from '@/lib/claude'
 import { buildResearchPrompt } from '@/lib/prompts/research'
 import { logUsage } from '@/lib/log'
 import { getAuthContext } from '@/lib/supabase-server'
@@ -26,10 +26,10 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          await callClaudeWithContentStream(prompt, (text) => {
+          await callClaudeWithWebSearchStream(prompt, (text) => {
             outputChunks.push(text)
             controller.enqueue(encoder.encode(text))
-          }, 8000)
+          }, 6000)
         } catch {
           controller.enqueue(encoder.encode('ERROR:分析に失敗しました。もう一度お試しください。'))
         } finally {
